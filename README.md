@@ -35,7 +35,9 @@ cp -R presets/airp-play ~/.dsh/.agent-presets/airp-play
 cp -R presets/airp-author ~/.dsh/.agent-presets/airp-author
 ```
 
-在工作区根放一份 `packs/lotm-tingen`（或把本仓当 cwd 启动 DSH）。sandbox 只能写工作区。
+新建 `airp-play` 会话时会先弹出「加载世界」卡：默认廷根切片，或自己填含 `pack.yaml` 的目录。选完后引擎把委托和工具说明注入上下文，模型不应再追问路径。
+
+sandbox 只能写工作区。
 
 `/retry` 由 `HostRuntime` 回放事件、把 State 裁到上一 check 之前；若 DSH 上有 `sessions.fork` 会顺带分叉会话日志。Kernel 自己不做时间旅行。
 

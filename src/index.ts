@@ -4,9 +4,9 @@ import type { Context } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
 import { defineTool } from '@deepseek-ai/dsh-tools'
 import type { Json } from './kernel/types.ts'
-import { loadPack } from './pack/pack.ts'
 import { receiptText } from './host/translate.ts'
 import { HostRuntime } from './host/runtime.ts'
+import { bootQuestion, listPackIds, openRuntime, resolveBootChoice } from './host/boot.ts'
 
 function sessionKey(exec: { agent?: { session?: { id?: string }; id?: string } } | undefined): string {
   return exec?.agent?.session?.id ?? exec?.agent?.id ?? 'default'
@@ -35,14 +35,49 @@ export function apply(ctx: Context, config: Config): void {
   const loadRuntime = async (key: string) => {
     const hit = runtimes.get(key)
     if (hit) return hit
-    const packId = config.defaultPack ?? 'lotm-tingen'
-    const loaded = await loadPack(resolve(packsDir, packId))
-    if (!loaded.ok || !loaded.canon) {
-      throw new Error(`airp: failed to load pack ${packId}: ${loaded.diagnostics.map((d) => d.message).join('; ')}`)
-    }
-    if (config.loreBudgetChars) loaded.canon.meta.loreBudgetChars = config.loreBudgetChars
-    const created = new HostRuntime({ canon: loaded.canon, sessionId: key, seed: `${packId}:${key}` })
+    const created = await openRuntime({
+      packsDir,
+      sessionId: key,
+      choice: { kind: 'bundled', packId: config.defaultPack ?? 'lotm-tingen' },
+    })
+    if (config.loreBudgetChars) created.canon.meta.loreBudgetChars = config.loreBudgetChars
     runtimes.set(key, created)
+    return created
+  }
+
+  const bootSession = async (agent: { id: string; inject: (msg: never) => void }) => {
+    const key = String(agent.id)
+    const questions = ctx.get('userQuestions')
+    let choice: ReturnType<typeof resolveBootChoice> = { kind: 'bundled', packId: config.defaultPack ?? 'lotm-tingen' }
+    if (questions) {
+      const ids = await listPackIds(packsDir)
+      const first = await questions.ask({
+        questions: bootQuestion(ids).questions,
+        agent: agent as never,
+      })
+      choice = resolveBootChoice(first, packsDir)
+      if (choice.kind === 'need-path') {
+        const again = await questions.ask({
+          questions: [{
+            id: 'boot_path',
+            header: '世界包路径',
+            question: '请输入含 pack.yaml 的目录（可粘贴）。',
+            options: [{ label: '使用廷根切片', description: '放弃自定义，进 lotm-tingen。' }],
+          }],
+          agent: agent as never,
+        })
+        const pathAns = again.answers.find((a: { id: string }) => a.id === 'boot_path') as { custom?: string } | undefined
+        const typed = pathAns?.custom?.trim()
+        choice = typed ? { kind: 'custom', path: typed } : { kind: 'bundled', packId: 'lotm-tingen' }
+      }
+    }
+    const created = await openRuntime({ packsDir, sessionId: key, choice })
+    if (config.loreBudgetChars) created.canon.meta.loreBudgetChars = config.loreBudgetChars
+    runtimes.set(key, created)
+    agent.inject({
+      content: [{ type: 'text', text: created.bootBrief() }],
+      source: { kind: 'user' },
+    } as never)
     return created
   }
 
@@ -155,6 +190,17 @@ export function apply(ctx: Context, config: Config): void {
       },
     })
   }
+
+  ctx.on('agent/session-start', (payload) => {
+    void bootSession(payload.agent as { id: string; inject: (msg: never) => void }).catch(() => {
+      void loadRuntime(String(payload.agent.id)).then((rt) => {
+        payload.agent.inject({
+          content: [{ type: 'text', text: rt.bootBrief() }],
+          source: { kind: 'user' },
+        } as never)
+      }).catch(() => undefined)
+    })
+  })
 
   ctx.on('agent/pre-step', async (payload, next) => {
     const text = JSON.stringify(payload.messages ?? [])
