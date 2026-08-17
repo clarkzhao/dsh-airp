@@ -1,5 +1,13 @@
 export type Json = null | boolean | number | string | Json[] | { [key: string]: Json }
 
+export const DEFAULT_GUARDED = [
+  'characters.*.sequence',
+  'characters.*.digest',
+  'characters.*.lose_control',
+  'facts.last_contest',
+  'facts.__check_ordinal',
+] as const
+
 export type Patch = Record<string, Json | string>
 
 export type Predicate =
@@ -142,6 +150,7 @@ export type StoryEvent =
   | {
       type: 'check'
       check_id: string
+      actors: Record<string, string>
       inputs: Record<string, Json>
       p: number
       xi: { kind: string; u: number }

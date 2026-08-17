@@ -1,27 +1,20 @@
-import type {
-  Canon,
-  CheckDef,
-  CheckReceipt,
-  ForcedCheck,
-  Intent,
-  Json,
-  KernelErrorCode,
-  Patch,
-  Predicate,
-  Receipt,
-  StoryEvent,
-  TurnOptions,
-  TurnResult,
-  WorldState,
-} from './types.js'
-
-const DEFAULT_GUARDED = [
-  'characters.*.sequence',
-  'characters.*.digest',
-  'characters.*.lose_control',
-  'facts.last_contest',
-  'facts.__check_ordinal',
-]
+import {
+  DEFAULT_GUARDED,
+  type Canon,
+  type CheckDef,
+  type CheckReceipt,
+  type ForcedCheck,
+  type Intent,
+  type Json,
+  type KernelErrorCode,
+  type Patch,
+  type Predicate,
+  type Receipt,
+  type StoryEvent,
+  type TurnOptions,
+  type TurnResult,
+  type WorldState,
+} from './types.ts'
 export class WorldKernel {
   private readonly canon: Canon
 
@@ -95,6 +88,7 @@ export class WorldKernel {
     const event: StoryEvent = {
       type: 'check',
       check_id: checkId,
+      actors,
       inputs: receipt.inputs,
       p,
       xi: receipt.xi,
@@ -283,7 +277,7 @@ function applyPatch(state: WorldState, patch: Record<string, Json>): void {
   }
 }
 
-function isGuarded(pointer: string, patterns: string[]): boolean {
+function isGuarded(pointer: string, patterns: readonly string[]): boolean {
   const parts = pointer.split('.')
   return patterns.some((pat) => {
     const want = pat.split('.')

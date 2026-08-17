@@ -2,10 +2,10 @@ import { resolve } from 'node:path'
 import type { Context } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
 import { defineTool } from '@deepseek-ai/dsh-tools'
-import { WorldKernel } from './kernel/world-kernel.js'
-import type { Json, WorldState } from './kernel/types.js'
-import { initialState, loadPack } from './pack/pack.js'
-import { intentFromCommand, intentFromTool, receiptText } from './host/translate.js'
+import type { Json } from './kernel/types.ts'
+import { loadPack } from './pack/pack.ts'
+import { receiptText } from './host/translate.ts'
+import { HostRuntime } from './host/runtime.ts'
 
 function sessionKey(exec: { agent?: { session?: { id?: string }; id?: string } } | undefined): string {
   return exec?.agent?.session?.id ?? exec?.agent?.id ?? 'default'
@@ -27,26 +27,19 @@ export const Config: z<Config> = z.object({
 
 export function apply(ctx: Context, config: Config): void {
   const packsDir = resolve(process.cwd(), config.packsDir ?? 'packs')
-  const sessions = new Map<string, { kernel: WorldKernel; state: WorldState; events: unknown[]; indexText: string }>()
+  const runtimes = new Map<string, HostRuntime>()
 
-  const loadSession = async (key: string, packId = config.defaultPack ?? 'lotm-tingen') => {
-    const hit = sessions.get(key)
+  const loadRuntime = async (key: string) => {
+    const hit = runtimes.get(key)
     if (hit) return hit
+    const packId = config.defaultPack ?? 'lotm-tingen'
     const loaded = await loadPack(resolve(packsDir, packId))
     if (!loaded.ok || !loaded.canon) {
       throw new Error(`airp: failed to load pack ${packId}: ${loaded.diagnostics.map((d) => d.message).join('; ')}`)
     }
     if (config.loreBudgetChars) loaded.canon.meta.loreBudgetChars = config.loreBudgetChars
-    const kernel = new WorldKernel(loaded.canon)
-    const indexText = [
-      `AIRP pack ${loaded.canon.meta.id} — ${loaded.canon.meta.title}`,
-      `checks: ${loaded.canon.index.checks.join(', ')}`,
-      `characters: ${loaded.canon.index.characters.join(', ')}`,
-      `lore: ${loaded.canon.index.lore.join(', ')}`,
-      'Numeric fields only change via check.propose or /gm. Walking is not a check.',
-    ].join('\n')
-    const created = { kernel, state: initialState(loaded.canon, `${packId}:${key}`), events: [] as unknown[], indexText }
-    sessions.set(key, created)
+    const created = new HostRuntime({ canon: loaded.canon, sessionId: key, seed: `${packId}:${key}` })
+    runtimes.set(key, created)
     return created
   }
 
@@ -59,19 +52,19 @@ export function apply(ctx: Context, config: Config): void {
       },
     }
 
+    const runTool = async (name: string, args: Record<string, unknown>, exec: { agent?: { session?: { id?: string }; id?: string } }) => {
+      const rt = await loadRuntime(sessionKey(exec))
+      const out = rt.dispatch({ kind: 'tool', name, args })
+      if (!out.ok && name !== 'pack.validate') throw new Error(out.text)
+      return name === 'pack.validate' || name === 'check.match' ? JSON.parse(out.text) as Json : out.text
+    }
+
     tools.register(defineTool({
       name: 'lore.get',
       description: 'Fetch a Canon lore document by key. Does not change numeric state.',
       parameters: { key: { type: 'string', required: true, description: 'lore key from the thin index' } },
       output: jsonOut,
-      async execute(args, exec) {
-        const session = await loadSession(sessionKey(exec))
-        const intent = intentFromTool('lore.get', args)
-        if ('error' in intent) throw new Error(intent.error)
-        const result = session.kernel.turn(session.state, intent)
-        if (result.ok) session.state = result.state
-        return receiptText(result)
-      },
+      execute: (args, exec) => runTool('lore.get', args, exec),
     }))
 
     tools.register(defineTool({
@@ -79,12 +72,7 @@ export function apply(ctx: Context, config: Config): void {
       description: 'Read the current world state projection, optionally at a pointer.',
       parameters: { pointer: { type: 'string', description: 'optional JSON pointer like facts.weather' } },
       output: jsonOut,
-      async execute(args, exec) {
-        const session = await loadSession(sessionKey(exec))
-        const intent = intentFromTool('state.read', args)
-        if ('error' in intent) throw new Error(intent.error)
-        return receiptText(session.kernel.turn(session.state, intent))
-      },
+      execute: (args, exec) => runTool('state.read', args, exec),
     }))
 
     tools.register(defineTool({
@@ -95,17 +83,7 @@ export function apply(ctx: Context, config: Config): void {
         actors: { type: 'object', additionalProperties: true, description: 'slot -> character id' },
       },
       output: jsonOut,
-      async execute(args, exec) {
-        const session = await loadSession(sessionKey(exec))
-        const intent = intentFromTool('check.propose', args)
-        if ('error' in intent) throw new Error(intent.error)
-        const result = session.kernel.turn(session.state, intent)
-        if (result.ok) {
-          session.state = result.state
-          session.events.push(...result.events)
-        }
-        return receiptText(result)
-      },
+      execute: (args, exec) => runTool('check.propose', args, exec),
     }))
 
     tools.register(defineTool({
@@ -116,17 +94,7 @@ export function apply(ctx: Context, config: Config): void {
         value: { type: 'json', required: true },
       },
       output: jsonOut,
-      async execute(args, exec) {
-        const session = await loadSession(sessionKey(exec))
-        const intent = intentFromTool('state.propose_fact', args)
-        if ('error' in intent) throw new Error(intent.error)
-        const result = session.kernel.turn(session.state, intent)
-        if (result.ok) {
-          session.state = result.state
-          session.events.push(...result.events)
-        }
-        return receiptText(result)
-      },
+      execute: (args, exec) => runTool('state.propose_fact', args, exec),
     }))
 
     tools.register(defineTool({
@@ -137,12 +105,7 @@ export function apply(ctx: Context, config: Config): void {
         actors: { type: 'object', additionalProperties: true },
       },
       output: jsonOut,
-      async execute(args, exec) {
-        const session = await loadSession(sessionKey(exec))
-        const tags = Array.isArray(args.tags) ? args.tags.map(String) : []
-        const actors = args.actors && typeof args.actors === 'object' ? Object.fromEntries(Object.entries(args.actors).map(([k, v]) => [k, String(v)])) : {}
-        return JSON.parse(JSON.stringify(session.kernel.match(session.state, tags, actors))) as Json
-      },
+      execute: (args, exec) => runTool('check.match', args, exec),
     }))
 
     tools.register(defineTool({
@@ -150,53 +113,70 @@ export function apply(ctx: Context, config: Config): void {
       description: 'Validate the current world pack. Author preset only.',
       parameters: { packId: { type: 'string', description: 'pack directory name' } },
       output: jsonOut,
-      async execute(args) {
-        const packId = typeof args.packId === 'string' && args.packId ? args.packId : (config.defaultPack ?? 'lotm-tingen')
-        const loaded = await loadPack(resolve(packsDir, packId))
-        return JSON.parse(JSON.stringify({ ok: loaded.ok, diagnostics: loaded.diagnostics })) as { ok: boolean; diagnostics: { code: string; message: string }[] }
-      },
+      execute: (args, exec) => runTool('pack.validate', args, exec),
     }))
   }
 
   const commands = ctx.get('commands')
   if (commands) {
-    const handle = async (name: string, rawInput: string, key: string) => {
-      const parsed = intentFromCommand(name, rawInput)
-      if ('error' in parsed) return { kind: 'error' as const, text: parsed.error }
-      if ('fork' in parsed) return { kind: 'success' as const, text: 'retry requires sessions.fork in the host UI; kernel does not time-travel.' }
-      if ('ooc' in parsed) return { kind: 'success' as const, text: parsed.ooc ? `ooc noted: ${parsed.ooc}` : 'ooc' }
-      const session = await loadSession(key)
-      const result = session.kernel.turn(session.state, parsed)
-      if (result.ok) {
-        session.state = result.state
-        session.events.push(...result.events)
-      }
-      return { kind: result.ok ? 'success' as const : 'error' as const, text: receiptText(result) }
-    }
     for (const name of ['look', 'state', 'retry', 'gm', 'correct', 'ooc']) {
       commands.register({
         name,
         description: `AIRP director command /${name}`,
-        handler: async (inv: { rawInput: string; agent?: { session?: { id?: string }; id?: string } }) =>
-          handle(name, inv.rawInput, sessionKey(inv)),
+        handler: async (inv: { rawInput: string; agent?: { session?: { id?: string }; id?: string } }) => {
+          const rt = await loadRuntime(sessionKey(inv))
+          const out = rt.dispatch({ kind: 'command', name, rawInput: inv.rawInput })
+          if (out.forkedFrom) {
+            runtimes.set(rt.sessionId, rt)
+            const sessions = ctx.get('sessions') as { fork?: (id: string) => unknown } | undefined
+            const sourceId = inv.agent?.session?.id
+            if (sessions?.fork && sourceId) {
+              try { sessions.fork(sourceId) } catch { /* world state already forked */ }
+            }
+          }
+          return { kind: out.ok ? 'success' as const : 'error' as const, text: out.text }
+        },
       })
     }
   }
 
   const systemPrompt = ctx.get('systemPrompt')
   if (systemPrompt) {
-    void loadSession('default').catch(() => undefined)
+    void loadRuntime('default').catch(() => undefined)
     systemPrompt.context({
       name: 'airp:index',
       order: 40,
       text: () => {
-        const cached = [...sessions.values()][0]
-        return cached?.indexText ?? `AIRP pack ${config.defaultPack ?? 'lotm-tingen'}. Use lore.get / state.read / check.propose.`
+        const cached = [...runtimes.values()][0]
+        return cached?.indexText() ?? `AIRP pack ${config.defaultPack ?? 'lotm-tingen'}. Use lore.get / state.read / check.propose.`
       },
     })
   }
+
+  ctx.on('agent/pre-step', async (payload, next) => {
+    const text = JSON.stringify(payload.messages ?? [])
+    const tags: string[] = []
+    if (/对抗|交手|动手|战斗|偷袭|拦住/.test(text)) tags.push('contest')
+    if (/扮演|消化|魔药/.test(text)) tags.push('digest')
+    if (/失控|污染|低语/.test(text)) tags.push('lose_control')
+    if (tags.length === 0) return next()
+    try {
+      const rt = await loadRuntime(String(payload.agent.id))
+      const present = rt.snapshot().state.present
+      const actors: Record<string, string> = present.length >= 2 ? { attacker: present[0]!, defender: present[1]! } : {}
+      const out = rt.dispatch({ kind: 'ic', tags, actors })
+      if (out.forced && out.result.ok) {
+        payload.agent.inject({
+          content: [{ type: 'text', text: `Forced AIRP check already resolved:\n${receiptText(out.result)}\nNarrate only this receipt. Do not re-adjudicate.` }],
+          source: { kind: 'user' },
+        } as never)
+      }
+    } catch { /* do not block the turn */ }
+    return next()
+  })
 }
 
-export { WorldKernel } from './kernel/world-kernel.js'
-export { loadPack, validatePack, initialState } from './pack/pack.js'
-export { intentFromTool, intentFromCommand, toolsFor } from './host/translate.js'
+export { WorldKernel } from './kernel/world-kernel.ts'
+export { loadPack, validatePack, initialState } from './pack/pack.ts'
+export { intentFromTool, intentFromCommand, toolsFor } from './host/translate.ts'
+export { HostRuntime } from './host/runtime.ts'

@@ -1,7 +1,7 @@
 import { readdir, readFile } from 'node:fs/promises'
 import { basename, join } from 'node:path'
 import yaml from 'js-yaml'
-import type { Canon, CharacterCard, CheckDef, LoreDoc, PackMeta, Predicate, WorldState } from '../kernel/types.js'
+import { DEFAULT_GUARDED, type Canon, type CharacterCard, type CheckDef, type LoreDoc, type PackMeta, type Predicate, type WorldState } from '../kernel/types.ts'
 
 export interface PackDiagnostic {
   code: 'MISSING_FILE' | 'BAD_YAML' | 'BAD_POINTER' | 'MISSING_CARD' | 'BAD_CONDITION' | 'GUARDED_IN_FACT_SCHEMA'
@@ -13,13 +13,6 @@ export interface PackLoadResult {
   canon?: Canon
   diagnostics: PackDiagnostic[]
 }
-
-const DEFAULT_GUARDED = [
-  'characters.*.sequence',
-  'characters.*.digest',
-  'characters.*.lose_control',
-  'facts.last_contest',
-]
 
 export async function loadPack(dir: string): Promise<PackLoadResult> {
   const diagnostics: PackDiagnostic[] = []
@@ -75,7 +68,7 @@ export async function loadPack(dir: string): Promise<PackLoadResult> {
 
   const guarded = Array.isArray((meta as PackMeta & { guarded?: string[] }).guarded)
     ? (meta as PackMeta & { guarded: string[] }).guarded
-    : DEFAULT_GUARDED
+    : [...DEFAULT_GUARDED]
 
   const canon: Canon = { meta, index: index ?? { checks: [], characters: [], lore: [] }, checks, characters, lore, guarded }
   diagnostics.push(...validatePack(canon))

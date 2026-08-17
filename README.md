@@ -37,4 +37,6 @@ cp -R presets/airp-author ~/.dsh/.agent-presets/airp-author
 
 在工作区根放一份 `packs/lotm-tingen`（或把本仓当 cwd 启动 DSH）。sandbox 只能写工作区。
 
-`/retry` 在 v0 返回说明：真正的时间旅行要靠 DSH `sessions.fork`，Kernel 不做。
+`/retry` 由 `HostRuntime` 回放事件、把 State 裁到上一 check 之前；若 DSH 上有 `sessions.fork` 会顺带分叉会话日志。Kernel 自己不做时间旅行。
+
+IC 文本里出现「对抗/消化/失控」等词时，Host 在 `agent/pre-step` 先 `match`，命中则先结算再让模型只叙述。
