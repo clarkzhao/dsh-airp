@@ -13,6 +13,7 @@ function sessionKey(exec: { agent?: { session?: { id?: string }; id?: string } }
 }
 
 export const name = 'airp'
+export const inject = ['tools']
 
 export interface Config {
   packsDir?: string
