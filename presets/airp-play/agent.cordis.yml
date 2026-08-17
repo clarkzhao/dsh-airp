@@ -13,10 +13,8 @@
       叙述只渲染引擎返回的结算单差。
     includeRuntimeContext: true
 
-# After `npm run build`, add a relative file: line to this preset:
-# - id: airp-play-mask
-#   name: <path-to-dsh-airp>/lib/host/play-mask.js
-# That restrict() hides pack.validate from play.
+# Do not mount play-mask here. tools.restrict() runs at preset mount, when
+# the global catalog is still empty, so naming pack.validate fails New Session.
 
 - id: ask-user
   name: '@deepseek-ai/dsh-tool-ask-user'

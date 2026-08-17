@@ -28,7 +28,7 @@ dsh plugin --profile web add /Users/clark/Workspace/dsh-airp
 npx @deepseek-ai/dsh plugin --profile web add /Users/clark/Workspace/dsh-airp
 ```
 
-预设（从本仓复制，不要带 `tool-cordis`）：
+预设（从本仓复制，不要带 `tool-cordis`，也不要在 play preset 里挂 `play-mask`：`tools.restrict` 在挂载时全局工具表还是空的，New Session 会失败）：
 
 ```bash
 cp -R presets/airp-play ~/.dsh/.agent-presets/airp-play
