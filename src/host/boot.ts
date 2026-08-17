@@ -3,6 +3,7 @@ import { resolve } from 'node:path'
 import { loadPack } from '../pack/pack.ts'
 import { HostRuntime } from './runtime.ts'
 
+export const PLAY_PRESET_ID = 'airp-play'
 export const BUNDLED_TINGEN = '廷根切片 lotm-tingen（推荐）'
 export const PICK_CUSTOM = '选择我的世界包目录…'
 
@@ -11,12 +12,29 @@ export interface BootAsk {
     id: string
     header?: string
     question: string
-    options: Array<{ label: string; description?: string }>
+    options?: Array<{ label: string; description?: string }>
   }>
 }
 
 export interface BootAnswer {
   answers: Array<{ id: string; selected?: string[]; custom?: string }>
+}
+
+export function shouldBootStory(opts: { presetId?: string; source?: string }): boolean {
+  return opts.presetId === PLAY_PRESET_ID && (opts.source ?? 'startup') === 'startup'
+}
+
+export function looksLikePackPath(value: string): boolean {
+  const text = value.trim()
+  if (!text || text === PICK_CUSTOM || text === BUNDLED_TINGEN) return false
+  return text.startsWith('/') || text.startsWith('~') || text.includes('pack.yaml') || text.includes('\\') || /^[A-Za-z]:[\\/]/.test(text)
+}
+
+function typedPath(item: BootAnswer['answers'][number] | undefined): string {
+  const custom = item?.custom?.trim()
+  if (custom) return custom
+  const selected = item?.selected?.[0]?.trim()
+  return selected && looksLikePackPath(selected) ? selected : ''
 }
 
 export function bootQuestion(packIds: string[]): BootAsk {
@@ -26,26 +44,43 @@ export function bootQuestion(packIds: string[]): BootAsk {
       label: id,
       description: `加载 packs/${id}`,
     })),
-    { label: PICK_CUSTOM, description: '输入或粘贴含 pack.yaml 的目录路径。' },
+    { label: PICK_CUSTOM, description: '下一屏粘贴含 pack.yaml 的目录。卡片底部也可直接输入路径。' },
   ]
   return {
     questions: [{
       id: 'boot_pack',
       header: '加载世界',
-      question: '先选要进的世界包。选完引擎会立刻装上，不用再找路径。',
+      question: '先选要进的世界包。只有 AIRP 消费者会话会问这一步。卡片底部可直接粘贴自己的包路径。',
       options,
     }],
   }
 }
 
-export function resolveBootChoice(answer: BootAnswer, packsDir: string): { kind: 'bundled'; packId: string } | { kind: 'custom'; path: string } | { kind: 'need-path' } {
-  const hit = answer.answers.find((a) => a.id === 'boot_pack')
-  const custom = hit?.custom?.trim()
-  if (custom) return { kind: 'custom', path: custom }
+export function pathQuestion(error?: string): BootAsk {
+  return {
+    questions: [{
+      id: 'boot_path',
+      header: '世界包路径',
+      question: error
+        ? `没能加载该目录：${error}\n请再贴一次含 pack.yaml 的目录路径。`
+        : '请输入或粘贴含 pack.yaml 的目录路径。不要选廷根，除非你改主意了。',
+    }],
+  }
+}
+
+export function resolveBootChoice(answer: BootAnswer, _packsDir?: string): { kind: 'bundled'; packId: string } | { kind: 'custom'; path: string } | { kind: 'need-path' } {
+  const hit = answer.answers.find((a) => a.id === 'boot_pack') ?? answer.answers.find((a) => a.id === 'boot_path')
+  const path = typedPath(hit)
+  if (path) return { kind: 'custom', path }
   const label = hit?.selected?.[0]
   if (!label || label === PICK_CUSTOM) return { kind: 'need-path' }
   if (label === BUNDLED_TINGEN) return { kind: 'bundled', packId: 'lotm-tingen' }
   return { kind: 'bundled', packId: label }
+}
+
+export function resolvePathAnswer(answer: BootAnswer): { kind: 'custom'; path: string } | { kind: 'need-path' } {
+  const path = typedPath(answer.answers.find((a) => a.id === 'boot_path'))
+  return path ? { kind: 'custom', path } : { kind: 'need-path' }
 }
 
 export async function listPackIds(packsDir: string): Promise<string[]> {
@@ -70,7 +105,7 @@ export async function openRuntime(opts: {
   seed?: string
 }): Promise<HostRuntime> {
   const dir = opts.choice.kind === 'custom'
-    ? opts.choice.path
+    ? resolve(opts.choice.path.replace(/^~(?=\/)/, process.env.HOME ?? ''))
     : resolve(opts.packsDir, opts.choice.packId)
   const loaded = await loadPack(dir)
   if (!loaded.ok || !loaded.canon) {

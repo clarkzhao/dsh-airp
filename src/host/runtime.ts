@@ -69,7 +69,8 @@ export class HostRuntime {
     const commission = this.kernel.turn(this.state, { type: 'lore', key: 'commission' })
     const lore = commission.ok && commission.receipt.kind === 'lore' ? commission.receipt.body : ''
     const extra = lore ? `\n委托：\n${lore}` : ''
-    return `${this.indexText()}\nscene: ${this.state.scene}\npresent: ${this.state.present.join(', ')}${extra}\n\n你已经在引擎里。禁止再问引擎在哪、不要扫工作区、不要用 ask_user_question 找路径。\n开场直接叙述廷根据点，用 lore.get / state.read / check.propose / state.propose_fact。`
+    const sceneHint = this.state.scene.includes('tingen') ? '开场直接叙述当前据点。' : '开场直接叙述当前场景。'
+    return `${this.indexText()}\nscene: ${this.state.scene}\npresent: ${this.state.present.join(', ')}${extra}\n\n你已经在引擎里。禁止再问引擎在哪、不要扫工作区、不要用 ask_user_question 找路径。\n${sceneHint}用 lore.get / state.read / check.propose / state.propose_fact。`
   }
 
   dispatch(req: HostRequest): HostResponse {
