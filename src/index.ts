@@ -172,7 +172,18 @@ export function apply(ctx: Context, config: Config): void {
               try { sessions.fork(sourceId) } catch { /* world state already forked */ }
             }
           }
-          return { kind: out.ok ? 'success' as const : 'error' as const, text: out.text }
+          if (inv.agent && name !== 'ooc') {
+              const inject = (inv.agent as { inject?: (msg: never) => void }).inject
+              if (typeof inject === 'function') {
+                try {
+                  inject({
+                    content: [{ type: 'text', text: 'AIRP /' + name + ' 引擎结果（内存存档，不是磁盘文件）：\n' + out.text }],
+                    source: { kind: 'user' },
+                  } as never)
+                } catch (e) {}
+              }
+            }
+            return { kind: out.ok ? 'success' as const : 'error' as const, text: out.text }
         },
       })
     }

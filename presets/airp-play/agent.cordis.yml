@@ -11,6 +11,8 @@
       你口头宣布「打赢了/晋升了」不会改变世界。
       走路和闲聊不要鉴定。关键冲突才 check.propose。
       叙述只渲染引擎返回的结算单差。
+      /state 和 state.read 读的是引擎内存存档，不是磁盘上的 packs/ 目录。读不到文件不等于没有状态。
+      不要用 bash/读文件去打开 lotm-tingen；用 state.read 或等 /state 注入的结果。
     includeRuntimeContext: true
 
 # Do not mount play-mask here. tools.restrict() runs at preset mount, when
