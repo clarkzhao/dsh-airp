@@ -6,7 +6,7 @@ import { defineTool } from '@deepseek-ai/dsh-tools'
 import type { Json } from './kernel/types.ts'
 import { receiptText } from './host/translate.ts'
 import { HostRuntime } from './host/runtime.ts'
-import { bootQuestion, isPlayPreset, listPackIds, openRuntime, pathQuestion, presetFromSession, resolveBootChoice, resolvePathAnswer, sessionIsBlank, shouldBootStory } from './host/boot.ts'
+import { bootQuestion, isAskCancelled, isPlayPreset, listPackIds, openRuntime, pathQuestion, presetFromSession, resolveBootChoice, resolvePathAnswer, sessionIsBlank, shouldBootStory } from './host/boot.ts'
 
 function sessionKey(exec: { agent?: { session?: { id?: string }; id?: string } } | undefined): string {
   return exec?.agent?.session?.id ?? exec?.agent?.id ?? 'default'
@@ -64,7 +64,9 @@ export function apply(ctx: Context, config: Config): void {
       blank: sessionIsBlank(agent.session),
       alreadyBooted: runtimes.has(String(agent.id)),
     })) return
-    void bootSession(agent)
+    void bootSession(agent).catch((error) => {
+      if (isAskCancelled(error)) return
+    })
   }
 
   const askChoice = async (agent: unknown, lastError?: string) => {
@@ -85,7 +87,13 @@ export function apply(ctx: Context, config: Config): void {
 
   const bootSession = async (agent: { id: string; inject: (msg: never) => void }) => {
     const key = String(agent.id)
-    let choice = await askChoice(agent)
+    let choice
+    try {
+      choice = await askChoice(agent)
+    } catch (err) {
+      if (isAskCancelled(err)) return
+      throw err
+    }
     for (let attempt = 0; attempt < 3; attempt += 1) {
       try {
         const created = await openRuntime({ packsDir, sessionId: key, choice })
@@ -97,11 +105,16 @@ export function apply(ctx: Context, config: Config): void {
         } as never)
         return created
       } catch (err) {
+        if (isAskCancelled(err)) return
         const message = err instanceof Error ? err.message : String(err)
-        choice = await askChoice(agent, message)
+        try {
+          choice = await askChoice(agent, message)
+        } catch (again) {
+          if (isAskCancelled(again)) return
+          throw again
+        }
       }
     }
-    throw new Error('无法加载所选世界包')
   }
 
   const tools = ctx.get('tools')

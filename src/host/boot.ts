@@ -53,6 +53,13 @@ export function shouldBootStory(opts: {
   return true
 }
 
+export function isAskCancelled(error: unknown): boolean {
+  if (!error || typeof error !== 'object') return false
+  const code = 'code' in error ? String((error as { code?: unknown }).code ?? '') : ''
+  const message = error instanceof Error ? error.message : String(error)
+  return code === 'ASK_CANCELLED' || code === 'ASK_ABORTED' || /cancelled ask_user_question|aborted before the user answered/i.test(message)
+}
+
 export function looksLikePackPath(value: string): boolean {
   const text = value.trim()
   if (!text || text === PICK_CUSTOM || text === BUNDLED_TINGEN) return false

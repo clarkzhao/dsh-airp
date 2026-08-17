@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { test } from 'node:test'
-import { BUNDLED_TINGEN, PICK_CUSTOM, bootQuestion, looksLikePackPath, openRuntime, pathQuestion, presetFromSession, resolveBootChoice, resolvePathAnswer, sessionIsBlank, shouldBootStory } from '../src/host/boot.ts'
+import { BUNDLED_TINGEN, PICK_CUSTOM, bootQuestion, isAskCancelled, looksLikePackPath, openRuntime, pathQuestion, presetFromSession, resolveBootChoice, resolvePathAnswer, sessionIsBlank, shouldBootStory } from '../src/host/boot.ts'
 
 const packsDir = join(dirname(fileURLToPath(import.meta.url)), '..', 'packs')
 
@@ -21,6 +21,12 @@ test('only a fresh airp-play session boots the story', () => {
   assert.equal(shouldBootStory({ presetId: undefined, source: 'startup' }), false)
   assert.equal(shouldBootStory({ presetId: 'airp-play', blank: false }), false)
   assert.equal(shouldBootStory({ presetId: 'airp-play', alreadyBooted: true }), false)
+})
+
+test('cancelling the pack picker is not a fatal error', () => {
+  assert.equal(isAskCancelled({ code: 'ASK_CANCELLED', message: 'the user cancelled ask_user_question' }), true)
+  assert.equal(isAskCancelled({ code: 'ASK_ABORTED', message: 'ask_user_question was aborted before the user answered' }), true)
+  assert.equal(isAskCancelled(new Error('unable to load pack')), false)
 })
 
 test('switching to airp-play while the session is still blank should boot', () => {
