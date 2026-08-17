@@ -35,7 +35,7 @@ cp -R presets/airp-play ~/.dsh/.agent-presets/airp-play
 cp -R presets/airp-author ~/.dsh/.agent-presets/airp-author
 ```
 
-只有新建 **AIRP 消费者**（`airp-play`）会话会弹「加载世界」卡。创造模式 / `airp-author` / 恢复旧会话都不会注入廷根开场。卡片底部或下一屏可粘贴含 `pack.yaml` 的目录；选自定义后不会再静默掉回廷根。
+只有 **AIRP 消费者**（`airp-play`）会弹「加载世界」卡：新建时若已选该 preset，或空白会话后来切到该 preset，都会问一次。创造模式 / `airp-author` / 已开过回合的恢复会话都不会注入开场。卡片底部或下一屏可粘贴含 `pack.yaml` 的目录；选自定义后不会再静默掉回廷根。
 
 sandbox 只能写工作区。
 

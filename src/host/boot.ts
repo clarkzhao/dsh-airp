@@ -20,8 +20,37 @@ export interface BootAnswer {
   answers: Array<{ id: string; selected?: string[]; custom?: string }>
 }
 
-export function shouldBootStory(opts: { presetId?: string; source?: string }): boolean {
-  return opts.presetId === PLAY_PRESET_ID && (opts.source ?? 'startup') === 'startup'
+export function isPlayPreset(presetId?: string): boolean {
+  return presetId === PLAY_PRESET_ID
+}
+
+export function sessionIsBlank(session?: { events?: ReadonlyArray<{ type?: string }> }): boolean {
+  return !session?.events?.some((event) => event.type === 'turn/start')
+}
+
+export function presetFromSession(session?: {
+  header?: { agentPreset?: string }
+  events?: ReadonlyArray<{ type?: string; data?: { agentPreset?: string } }>
+}): string | undefined {
+  const events = session?.events
+  if (events) {
+    for (let index = events.length - 1; index >= 0; index -= 1) {
+      const event = events[index]
+      if (event?.type === 'agent-preset/selected' && event.data?.agentPreset) return event.data.agentPreset
+    }
+  }
+  return session?.header?.agentPreset
+}
+
+export function shouldBootStory(opts: {
+  presetId?: string
+  source?: string
+  blank?: boolean
+  alreadyBooted?: boolean
+}): boolean {
+  if (!isPlayPreset(opts.presetId) || opts.alreadyBooted || opts.blank === false) return false
+  if (opts.source === 'resume' || opts.source === 'compact') return false
+  return true
 }
 
 export function looksLikePackPath(value: string): boolean {

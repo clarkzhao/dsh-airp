@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { test } from 'node:test'
-import { BUNDLED_TINGEN, PICK_CUSTOM, bootQuestion, looksLikePackPath, openRuntime, pathQuestion, resolveBootChoice, resolvePathAnswer, shouldBootStory } from '../src/host/boot.ts'
+import { BUNDLED_TINGEN, PICK_CUSTOM, bootQuestion, looksLikePackPath, openRuntime, pathQuestion, presetFromSession, resolveBootChoice, resolvePathAnswer, sessionIsBlank, shouldBootStory } from '../src/host/boot.ts'
 
 const packsDir = join(dirname(fileURLToPath(import.meta.url)), '..', 'packs')
 
@@ -19,6 +19,18 @@ test('only a fresh airp-play session boots the story', () => {
   assert.equal(shouldBootStory({ presetId: 'airp-author', source: 'startup' }), false)
   assert.equal(shouldBootStory({ presetId: 'cordis', source: 'startup' }), false)
   assert.equal(shouldBootStory({ presetId: undefined, source: 'startup' }), false)
+  assert.equal(shouldBootStory({ presetId: 'airp-play', blank: false }), false)
+  assert.equal(shouldBootStory({ presetId: 'airp-play', alreadyBooted: true }), false)
+})
+
+test('switching to airp-play while the session is still blank should boot', () => {
+  assert.equal(shouldBootStory({ presetId: 'airp-play', source: 'startup', blank: true }), true)
+  assert.equal(sessionIsBlank({ events: [{ type: 'agent-preset/selected' }] }), true)
+  assert.equal(sessionIsBlank({ events: [{ type: 'turn/start' }] }), false)
+  assert.equal(presetFromSession({
+    header: { agentPreset: 'standard' },
+    events: [{ type: 'agent-preset/selected', data: { agentPreset: 'airp-play' } }],
+  }), 'airp-play')
 })
 
 test('selecting bundled tingen opens a runtime with commission brief', async () => {

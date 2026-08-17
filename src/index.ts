@@ -6,7 +6,7 @@ import { defineTool } from '@deepseek-ai/dsh-tools'
 import type { Json } from './kernel/types.ts'
 import { receiptText } from './host/translate.ts'
 import { HostRuntime } from './host/runtime.ts'
-import { bootQuestion, listPackIds, openRuntime, pathQuestion, PLAY_PRESET_ID, resolveBootChoice, resolvePathAnswer, shouldBootStory } from './host/boot.ts'
+import { bootQuestion, isPlayPreset, listPackIds, openRuntime, pathQuestion, presetFromSession, resolveBootChoice, resolvePathAnswer, sessionIsBlank, shouldBootStory } from './host/boot.ts'
 
 function sessionKey(exec: { agent?: { session?: { id?: string }; id?: string } } | undefined): string {
   return exec?.agent?.session?.id ?? exec?.agent?.id ?? 'default'
@@ -45,12 +45,26 @@ export function apply(ctx: Context, config: Config): void {
     return created
   }
 
-  const sessionPreset = (agent: { session?: { header?: { agentPreset?: string } }; ctx?: unknown }) => {
-    const fromHeader = agent.session?.header?.agentPreset
-    if (fromHeader) return fromHeader
+  const sessionPreset = (agent: {
+    session?: { header?: { agentPreset?: string }; events?: ReadonlyArray<{ type?: string; data?: { agentPreset?: string } }> }
+    ctx?: unknown
+  }) => {
+    const fromLog = presetFromSession(agent.session)
+    if (fromLog) return fromLog
     const presets = ctx.get('agentPresets')
     if (presets && agent.ctx) return presets.composedPreset(agent.ctx as never)
     return undefined
+  }
+
+  const maybeBoot = (agent: { id: string; inject: (msg: never) => void; session?: { events?: ReadonlyArray<{ type?: string }> } }, source?: string) => {
+    if (runtimes.has(String(agent.id))) return
+    if (!shouldBootStory({
+      presetId: sessionPreset(agent),
+      source,
+      blank: sessionIsBlank(agent.session),
+      alreadyBooted: runtimes.has(String(agent.id)),
+    })) return
+    void bootSession(agent)
   }
 
   const askChoice = async (agent: unknown, lastError?: string) => {
@@ -213,14 +227,22 @@ export function apply(ctx: Context, config: Config): void {
   }
 
   ctx.on('agent/session-start', (payload) => {
-    const agent = payload.agent as { id: string; inject: (msg: never) => void; session?: { header?: { agentPreset?: string } }; ctx?: unknown }
-    if (!shouldBootStory({ presetId: sessionPreset(agent), source: payload.source })) return
-    void bootSession(agent)
+    maybeBoot(payload.agent, payload.source)
+  })
+
+  ctx.on('session/event', (session, event) => {
+    const typed = event as { type?: string; data?: { agentPreset?: string } }
+    if (typed.type !== 'agent-preset/selected') return
+    if (!isPlayPreset(typed.data?.agentPreset)) return
+    const agents = ctx.get('agents')
+    const agent = agents?.get(session.id)
+    if (!agent) return
+    maybeBoot(agent, 'startup')
   })
 
   ctx.on('agent/pre-step', async (payload, next) => {
     const agent = payload.agent as { id: string; inject: (msg: never) => void; session?: { header?: { agentPreset?: string } }; ctx?: unknown }
-    if (sessionPreset(agent) !== PLAY_PRESET_ID) return next()
+    if (!isPlayPreset(sessionPreset(agent))) return next()
     const texts = (payload.messages ?? []).flatMap((message) => {
       const source = (message as { source?: { kind?: string } }).source?.kind
       if (source !== 'user') return []
