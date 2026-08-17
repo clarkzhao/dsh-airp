@@ -1,0 +1,17 @@
+checks:
+  - contest-sequence
+  - digest-acting
+  - lose-control
+characters:
+  - klein
+  - dunn
+  - leonard
+  - opponent
+lore:
+  - axioms
+  - fool-s9-s8
+  - tingen
+  - night-watchers
+scenes:
+  - tingen.blackthorn
+  - tingen.street

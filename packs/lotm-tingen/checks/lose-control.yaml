@@ -1,0 +1,17 @@
+id: lose-control
+when: 污染或失控边缘
+kind: lose_control
+condition:
+  tag: lose_control
+inputs:
+  lose_control: characters.{actor}.lose_control
+formula: |
+  p = clamp(1 - lose_control)
+outcomes:
+  success:
+    apply:
+      facts.held_together: true
+  failure:
+    apply:
+      characters.{actor}.lose_control: "+0.2"
+      facts.held_together: false

@@ -1,0 +1,23 @@
+id: contest-sequence
+when: 两名非凡者直接对抗
+kind: contest
+condition:
+  all:
+    - tag: contest
+    - present: ["$attacker", "$defender"]
+inputs:
+  atk: characters.{attacker}.sequence
+  def: characters.{defender}.sequence
+  same_pathway: eq(characters.{attacker}.pathway, characters.{defender}.pathway)
+formula: |
+  strength = atk - def
+  p = sigmoid(-strength / 1.5)
+  if same_pathway: p = clamp(p + 0.05)
+outcomes:
+  success:
+    apply:
+      facts.last_contest: attacker
+  failure:
+    apply:
+      facts.last_contest: defender
+      characters.{attacker}.lose_control: "+0.05"

@@ -1,0 +1,12 @@
+id: lotm-tingen
+title: 廷根切片
+locale: zh-CN
+rng: bernoulli
+entry_scene: tingen.blackthorn
+loreBudgetChars: 4000
+opening:
+  present: [klein, dunn, opponent]
+  revealed: [axioms, tingen]
+  facts:
+    weather: 雾
+    alarm: false

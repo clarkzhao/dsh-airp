@@ -1,0 +1,16 @@
+id: digest-acting
+when: 扮演消化魔药
+kind: digest
+condition:
+  tag: digest
+inputs:
+  digest: characters.{actor}.digest
+formula: |
+  p = clamp(0.45 + digest * 0.3)
+outcomes:
+  success:
+    apply:
+      characters.{actor}.digest: "+0.15"
+  failure:
+    apply:
+      characters.{actor}.lose_control: "+0.03"

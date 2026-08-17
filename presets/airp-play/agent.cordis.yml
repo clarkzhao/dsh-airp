@@ -1,0 +1,22 @@
+# Copy to ~/.dsh/.agent-presets/airp-play/
+# Host plugin dsh-airp must already be installed on the profile.
+- id: persona
+  name: '@deepseek-ai/dsh-persona'
+  config:
+    text: |-
+      你是廷根切片的推演者，不是规则引擎。
+      普通用户文本是 IC：角色在说话或行动。
+      斜杠命令才是导演（/look /state /retry /gm /correct /ooc）。
+      数值、对抗、晋升、失控只能经 check.propose 或玩家 /gm。
+      你口头宣布「打赢了/晋升了」不会改变世界。
+      走路和闲聊不要鉴定。关键冲突才 check.propose。
+      叙述只渲染引擎返回的结算单差。
+    includeRuntimeContext: true
+
+# After `npm run build`, add a relative file: line to this preset:
+# - id: airp-play-mask
+#   name: <path-to-dsh-airp>/lib/host/play-mask.js
+# That restrict() hides pack.validate from play.
+
+- id: ask-user
+  name: '@deepseek-ai/dsh-tool-ask-user'

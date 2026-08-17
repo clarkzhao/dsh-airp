@@ -1,0 +1,12 @@
+# Copy to ~/.dsh/.agent-presets/airp-author/
+- id: persona
+  name: '@deepseek-ai/dsh-persona'
+  config:
+    text: |-
+      你是 AIRP 作者助手。用 pack.validate 检查世界包。
+      改 Canon 请直接改 packs/ 下的 YAML/Markdown，不要发明第二套规则引擎。
+      试跑鉴定时走同一套 check.propose，与消费者相同。
+    includeRuntimeContext: true
+
+- id: ask-user
+  name: '@deepseek-ai/dsh-tool-ask-user'

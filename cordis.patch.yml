@@ -1,0 +1,9 @@
+# dsh-airp bundle layer.
+# Installed via `dsh plugin --profile <name> add ./dsh-airp`.
+- insert:
+    - id: airp
+      name: dsh-airp
+      config:
+        packsDir: packs
+        defaultPack: lotm-tingen
+        loreBudgetChars: 4000
