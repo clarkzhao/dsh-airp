@@ -22,7 +22,8 @@ test('tool names translate to kernel intents', () => {
 })
 
 test('retry is fork, not a turn intent', () => {
-  assert.deepEqual(intentFromCommand('retry', ''), { fork: true })
+  assert.deepEqual(intentFromCommand('retry', ''), { fork: true, checkId: undefined })
+  assert.deepEqual(intentFromCommand('retry', 'contest-sequence'), { fork: true, checkId: 'contest-sequence' })
 })
 
 test('gm parses pointer and required reason', () => {

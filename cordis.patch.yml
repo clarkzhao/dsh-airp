@@ -4,6 +4,5 @@
     - id: airp
       name: dsh-airp
       config:
-        packsDir: packs
         defaultPack: lotm-tingen
         loreBudgetChars: 4000

@@ -113,7 +113,7 @@ export class HostRuntime {
         sessionId: this.id,
       }
     }
-    if ('fork' in parsed) return this.retry()
+    if ('fork' in parsed) return this.retry(parsed.checkId)
     return this.applyIntent(parsed)
   }
 
@@ -133,9 +133,9 @@ export class HostRuntime {
     return { ...result, forced: true }
   }
 
-  private retry(): HostResponse {
+  private retry(checkId?: string): HostResponse {
     const parent = this.id
-    const cut = lastCheckIndex(this.log)
+    const cut = lastCheckIndex(this.log, checkId)
     if (cut < 0) return this.fail('nothing to retry')
     this.log = this.log.slice(0, cut)
     this.state = replay(this.kernel, this.opening, this.log)
@@ -180,9 +180,11 @@ function asActors(value: unknown): Record<string, string> {
   return Object.fromEntries(Object.entries(value as Record<string, unknown>).map(([k, v]) => [k, String(v)]))
 }
 
-function lastCheckIndex(events: StoryEvent[]): number {
+function lastCheckIndex(events: StoryEvent[], checkId?: string): number {
   for (let i = events.length - 1; i >= 0; i -= 1) {
-    if (events[i]!.type === 'check') return i
+    const event = events[i]!
+    if (event.type !== 'check') continue
+    if (!checkId || event.check_id === checkId) return i
   }
   return -1
 }

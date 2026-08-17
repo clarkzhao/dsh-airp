@@ -1,4 +1,5 @@
-import { resolve } from 'node:path'
+import { dirname, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import type { Context } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
 import { defineTool } from '@deepseek-ai/dsh-tools'
@@ -26,7 +27,8 @@ export const Config: z<Config> = z.object({
 })
 
 export function apply(ctx: Context, config: Config): void {
-  const packsDir = resolve(process.cwd(), config.packsDir ?? 'packs')
+  const bundledPacks = resolve(dirname(fileURLToPath(import.meta.url)), '../packs')
+  const packsDir = resolve(config.packsDir && config.packsDir !== 'packs' ? config.packsDir : bundledPacks)
   const runtimes = new Map<string, HostRuntime>()
 
   const loadRuntime = async (key: string) => {

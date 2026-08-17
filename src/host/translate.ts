@@ -29,14 +29,14 @@ export function intentFromTool(name: string, args: Record<string, unknown>): Int
   }
 }
 
-export function intentFromCommand(name: string, rawInput: string): Intent | { fork: true } | { ooc: string } | { error: string } {
+export function intentFromCommand(name: string, rawInput: string): Intent | { fork: true; checkId?: string } | { ooc: string } | { error: string } {
   const input = rawInput.trim()
   switch (name) {
     case 'look':
     case 'state':
       return { type: 'look', pointer: input || undefined }
     case 'retry':
-      return { fork: true }
+      return { fork: true, checkId: input || undefined }
     case 'gm': {
       const split = splitReason(input)
       if (!split) return { error: 'usage: /gm <pointer>=<json> :: <reason>' }
