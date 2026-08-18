@@ -79,5 +79,8 @@ test('scaffoldPack writes interview facts and hard cost', async () => {
   assert.match(yaml, /revealed: \[commission\]/)
   const check = await readFile(join(dest, 'checks', 'contest-generic.yaml'), 'utf8')
   assert.match(check, /\+0\.2/)
+  const scene = await readFile(join(dest, 'lore', 'rain-night-start.md'), 'utf8')
+  assert.match(scene, /看得见什么|规矩/)
+  assert.equal(made.diagnostics.filter((d) => d.code === 'MISSING_SCENE').length, 0)
   await rm(dest, { recursive: true, force: true })
 })

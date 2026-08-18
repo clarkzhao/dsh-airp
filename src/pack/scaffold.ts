@@ -53,6 +53,7 @@ export function scaffoldFiles(spec: ScaffoldSpec): Record<string, string> {
     ? axioms.map((line) => `- ${line.replace(/^[-*]\s*/, '')}`).join('\n')
     : '- 走路和闲聊不触发鉴定；只有关键冲突才鉴定。\n- 口头宣布胜负或晋升不会改变世界。'
   const commission = spec.commission?.trim() || interview.commission?.trim() || '写清谁委托、要查什么、哪一步才鉴定。'
+  const sceneKey = scene.replaceAll('.', '-')
   const factLines = Object.entries(facts).map(([k, v]) => `    ${k}: ${yamlScalar(v)}`)
 
   const packYaml = [
@@ -87,6 +88,7 @@ export function scaffoldFiles(spec: ScaffoldSpec): Record<string, string> {
     'lore:',
     '  - axioms',
     '  - commission',
+    `  - ${sceneKey}`,
     'scenes:',
     `  - ${scene}`,
     '',
@@ -126,6 +128,14 @@ export function scaffoldFiles(spec: ScaffoldSpec): Record<string, string> {
     '',
   ].join('\n')
 
+  const sceneMd = [
+    `# ${scene}`,
+    '',
+    '看得见什么、有什么规矩、状态指针（facts.*）。走路闲聊不鉴定。',
+    interview.scene && interview.scene !== scene ? `开场地点：${interview.scene}` : '',
+    '',
+  ].filter((line) => line !== undefined).join('\n')
+
   const axiomsMd = `# 公理\n\n${axiomBody}\n`
   const commissionMd = [
     '# 开局委托',
@@ -157,6 +167,7 @@ export function scaffoldFiles(spec: ScaffoldSpec): Record<string, string> {
     [`characters/${heroId}.md`]: heroMd,
     'lore/axioms.md': axiomsMd,
     'lore/commission.md': commissionMd,
+    [`lore/${sceneKey}.md`]: sceneMd,
     'README.md': readme,
   }
 }

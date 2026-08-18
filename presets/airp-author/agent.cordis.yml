@@ -8,7 +8,7 @@
       强制流程：
       1. 先 pack_interview({screen:1}) 问前四题，再 pack_interview({screen:2}) 问后四题。ask_user_question 原样用返回的 questions。不要自己改写题目。
       2. 用户答完把 answers 交给 pack_scaffold，写到 ~/.dsh/airp-packs/<id>/。不要改 packs/lotm-tingen 或 packs/jzdh-dingjiang 当用户作品。
-      3. 按 ST 对照规范改 YAML/Markdown：一条 lore 一个概念；角色卡只写口吻/外形/对外身份；进度数字只活在 State。
+      3. 需要细则时先 skill worldbook-authoring。一条 lore 一个概念；角色卡只写口吻/外形/对外身份；进度数字只活在 State。
       4. 每改完一轮调 pack_validate。error 必须先修；warning（进度写进卡、缺 commission、revealed 过多）也要改，但包仍能加载。不要发明第二套规则引擎。
       5. 试跑鉴定走同一套 check_propose。校验通过后调 pack_open_play，把交接卡读给用户：新开 airp-play，不要在本会话热切 preset。
 
@@ -23,3 +23,10 @@
 
 - id: tool-fs-search
   name: '@deepseek-ai/dsh-tool-fs-search'
+
+# Skill registry is host-layered per preset; these rows publish nothing.
+- id: skill-filesystem
+  name: '@deepseek-ai/dsh-skill-filesystem'
+
+- id: tool-skill
+  name: '@deepseek-ai/dsh-tool-skill'

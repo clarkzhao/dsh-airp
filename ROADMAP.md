@@ -37,6 +37,7 @@
 - [x] 八问拆成两屏；`index.scenes` 要对 lore 文件；Issue 模板 + CONTRIBUTING
 - [x] GitHub 标签 `pack` / `authoring` / `engine` / `demo` / `docs`
 - [x] 开场 brief 按包装配场景 lore、委托、鉴定词，不再写死廷根
+- [x] scaffold 写出场景 lore；创造者 preset 挂 `worldbook-authoring` skill
 
 ## 以后（v1+，见 docs/engine.md §12）
 
