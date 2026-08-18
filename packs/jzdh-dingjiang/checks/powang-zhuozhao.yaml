@@ -1,0 +1,18 @@
+id: powang-zhuozhao
+when: 主动破妄或烛照（鉴别阴尸草、看破伪装/蛾种、开阴眼窥幽冥）
+kind: insight
+condition:
+  tag: powang
+inputs:
+  insight: characters.{actor}.insight
+  candle: characters.{actor}.candle
+formula: |
+  p = clamp(0.35 + insight * 0.25 + candle * 0.3)
+outcomes:
+  success:
+    apply:
+      facts.revealed_truth: true
+  failure:
+    apply:
+      facts.revealed_truth: false
+      facts.misjudged: true

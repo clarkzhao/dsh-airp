@@ -1,0 +1,35 @@
+checks:
+  - contest-wushu
+  - powang-zhuozhao
+  - ruju-cost
+characters:
+  - ding-songyan
+  - xu-changan
+  - ding-qingyan
+  - zheng-zhuxi
+  - ren-youyang
+  - su-qingli
+  - er-ren
+lore:
+  - axioms
+  - jzdh-world
+  - jzdh-dingjiang
+  - jzdh-wushu
+  - jzdh-zaoqiao
+  - jzdh-hunxiang
+  - jzdh-shihai
+  - jzdh-zhuozhao
+  - jzdh-powang
+  - jzdh-mingzhong
+  - jzdh-youming
+  - jzdh-mishan
+  - jzdh-danding
+  - jzdh-zongmen
+  - jzdh-zhenfu
+  - jzdh-dangjia
+  - jzdh-yinzhicao
+  - jzdh-commission
+  - jzdh-yangyan
+scenes:
+  - jzdh.dangkang
+  - jzdh.luanzanggang

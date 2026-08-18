@@ -61,16 +61,18 @@ export class HostRuntime {
       `checks: ${this.canon.index.checks.join(', ')}`,
       `characters: ${this.canon.index.characters.join(', ')}`,
       `lore: ${this.canon.index.lore.join(', ')}`,
-      'Numeric fields only change via check.propose or /gm. Walking is not a check.',
+      'Numeric fields only change via check_propose or /gm. Walking is not a check.',
     ].join('\n')
   }
 
   bootBrief(): string {
-    const commission = this.kernel.turn(this.state, { type: 'lore', key: 'commission' })
-    const lore = commission.ok && commission.receipt.kind === 'lore' ? commission.receipt.body : ''
+    const key = ['commission', 'jzdh-commission'].find((id) => this.canon.lore[id])
+      ?? Object.keys(this.canon.lore).find((id) => id.includes('commission'))
+    const commission = key ? this.kernel.turn(this.state, { type: 'lore', key }) : undefined
+    const lore = commission?.ok && commission.receipt.kind === 'lore' ? commission.receipt.body : ''
     const extra = lore ? `\n委托：\n${lore}` : ''
     const sceneHint = this.state.scene.includes('tingen') ? '开场直接叙述当前据点。' : '开场直接叙述当前场景。'
-    return `${this.indexText()}\nscene: ${this.state.scene}\npresent: ${this.state.present.join(', ')}${extra}\n\n你已经在引擎里。禁止再问引擎在哪、不要扫工作区、不要用 ask_user_question 找路径。\n${sceneHint}用 lore.get / state.read / check.propose / state.propose_fact。`
+    return `${this.indexText()}\nscene: ${this.state.scene}\npresent: ${this.state.present.join(', ')}${extra}\n\n你已经在引擎里。禁止再问引擎在哪、不要扫工作区、不要用 ask_user_question 找路径。\n${sceneHint}用 lore_get / state_read / check_propose / state_propose_fact。`
   }
 
   dispatch(req: HostRequest): HostResponse {
@@ -83,17 +85,17 @@ export class HostRuntime {
     if (!toolsFor(role).includes(name as typeof PLAY_OK)) {
       return this.fail(`tool ${name} is not visible to ${role}`)
     }
-    if (name === 'pack.validate') {
+    if (name === 'pack_validate') {
       const diagnostics = validatePack(this.canon)
       return {
         ok: diagnostics.length === 0,
-        text: JSON.stringify({ ok: diagnostics.length === 0, diagnostics }),
+        text: JSON.stringify({ ok: diagnostics.length === 0, packId: this.canon.meta.id, diagnostics }),
         result: { ok: true, state: this.state, receipt: { kind: 'empty' }, events: [] },
         sessionId: this.id,
         diagnostics,
       }
     }
-    if (name === 'check.match') {
+    if (name === 'check_match') {
       const tags = Array.isArray(args.tags) ? args.tags.map(String) : []
       const actors = asActors(args.actors)
       const forced = this.kernel.match(this.state, tags, actors)
@@ -181,7 +183,7 @@ export class HostRuntime {
   }
 }
 
-const PLAY_OK = 'lore.get'
+const PLAY_OK = 'lore_get'
 
 function asActors(value: unknown): Record<string, string> {
   if (!value || typeof value !== 'object') return {}

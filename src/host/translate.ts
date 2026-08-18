@@ -2,8 +2,9 @@ import type { Intent, Json, Patch, TurnResult } from '../kernel/types.ts'
 
 export type PlayRole = 'play' | 'author'
 
-export const PLAY_TOOLS = ['lore.get', 'state.read', 'check.match', 'check.propose', 'state.propose_fact'] as const
-export const AUTHOR_EXTRA_TOOLS = ['pack.validate'] as const
+// OpenAI-compatible APIs reject dotted function names (`^[a-zA-Z0-9_-]+$`).
+export const PLAY_TOOLS = ['lore_get', 'state_read', 'check_match', 'check_propose', 'state_propose_fact'] as const
+export const AUTHOR_EXTRA_TOOLS = ['pack_validate', 'pack_scaffold'] as const
 
 export function toolsFor(role: PlayRole): readonly string[] {
   return role === 'author' ? [...PLAY_TOOLS, ...AUTHOR_EXTRA_TOOLS] : PLAY_TOOLS
@@ -11,17 +12,17 @@ export function toolsFor(role: PlayRole): readonly string[] {
 
 export function intentFromTool(name: string, args: Record<string, unknown>): Intent | { error: string } {
   switch (name) {
-    case 'lore.get':
+    case 'lore_get':
       if (typeof args.key !== 'string' || !args.key) return { error: 'key required' }
       return { type: 'lore', key: args.key }
-    case 'state.read':
+    case 'state_read':
       return { type: 'look', pointer: typeof args.pointer === 'string' ? args.pointer : undefined }
-    case 'check.propose': {
+    case 'check_propose': {
       if (typeof args.checkId !== 'string' || !args.checkId) return { error: 'checkId required' }
       const actors = isStringRecord(args.actors) ? args.actors : {}
       return { type: 'check', checkId: args.checkId, actors }
     }
-    case 'state.propose_fact':
+    case 'state_propose_fact':
       if (typeof args.pointer !== 'string' || !args.pointer) return { error: 'pointer required' }
       return { type: 'fact', pointer: args.pointer, value: (args.value ?? null) as Json }
     default:

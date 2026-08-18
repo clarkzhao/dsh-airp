@@ -19,7 +19,7 @@ test('commission spine: fact investigate, contest, digest, retry restores pre-co
 
   const accept = play.dispatch({
     kind: 'tool',
-    name: 'state.propose_fact',
+    name: 'state_propose_fact',
     args: { pointer: 'facts.commission', value: 'accepted' },
   })
   assert.equal(accept.ok, true)
@@ -28,7 +28,7 @@ test('commission spine: fact investigate, contest, digest, retry restores pre-co
 
   const fakePromote = play.dispatch({
     kind: 'tool',
-    name: 'state.propose_fact',
+    name: 'state_propose_fact',
     args: { pointer: 'characters.klein.sequence', value: 8 },
   })
   assert.equal(fakePromote.ok, false)
@@ -47,7 +47,7 @@ test('commission spine: fact investigate, contest, digest, retry restores pre-co
 
   const digest = play.dispatch({
     kind: 'tool',
-    name: 'check.propose',
+    name: 'check_propose',
     args: { checkId: 'digest-acting', actors: { actor: 'klein' } },
     u: 0.1,
   })
@@ -68,7 +68,7 @@ test('commission spine: fact investigate, contest, digest, retry restores pre-co
   const fresh = new HostRuntime({ canon: authorCanon, sessionId: 'play-2', seed: 'seed-tingen', role: 'play' })
   const again = fresh.dispatch({
     kind: 'tool',
-    name: 'check.propose',
+    name: 'check_propose',
     args: { checkId: 'contest-sequence', actors: { attacker: 'klein', defender: 'opponent' } },
     u: 0.5,
   })

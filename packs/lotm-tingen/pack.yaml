@@ -4,6 +4,13 @@ locale: zh-CN
 rng: bernoulli
 entry_scene: tingen.blackthorn
 loreBudgetChars: 4000
+description: 官方 demo。愚者 S9–S8，黑荆棘一条失踪委托。
+license: CC-BY-SA-4.0
+attribution: 同人切片，非官方《诡秘之主》文本。
+tags:
+  contest: [对抗, 交手, 动手, 战斗, 偷袭, 拦住]
+  digest: [扮演, 消化, 魔药]
+  lose_control: [失控, 污染, 低语]
 opening:
   present: [klein, dunn, opponent]
   revealed: [axioms, tingen]

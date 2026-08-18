@@ -227,32 +227,89 @@ function evalExpr(
     if (call[1] === 'clamp') return fns.clamp(args[0] ?? 0, args[1], args[2])
   }
   const tokens = expr
+    .replaceAll('(', ' ( ')
+    .replaceAll(')', ' ) ')
     .replaceAll('-', ' - ')
     .replaceAll('+', ' + ')
     .replaceAll('/', ' / ')
     .replaceAll('*', ' * ')
     .split(/\s+/)
     .filter(Boolean)
-  let acc = 0
-  let op: '+' | '-' | '*' | '/' = '+'
-  const apply = (n: number) => {
-    if (op === '+') acc += n
-    else if (op === '-') acc -= n
-    else if (op === '*') acc *= n
-    else acc = n === 0 ? acc : acc / n
+  return evalTokens(tokens, env)
+}
+
+function readAtom(
+  tokens: string[],
+  i: number,
+  env: Record<string, number | boolean>,
+): { value: number; next: number } | undefined {
+  const tok = tokens[i]
+  if (tok === undefined) return undefined
+  if (tok === '(') {
+    const inner: string[] = []
+    let depth = 1
+    let j = i + 1
+    for (; j < tokens.length; j += 1) {
+      if (tokens[j] === '(') depth += 1
+      else if (tokens[j] === ')') {
+        depth -= 1
+        if (depth === 0) break
+      }
+      inner.push(tokens[j]!)
+    }
+    return { value: evalTokens(inner, env), next: j + 1 }
   }
-  for (const tok of tokens) {
+  if (tok in env) {
+    const v = env[tok]
+    return { value: typeof v === 'number' ? v : v ? 1 : 0, next: i + 1 }
+  }
+  const n = Number(tok)
+  if (!Number.isNaN(n)) return { value: n, next: i + 1 }
+  return undefined
+}
+
+function evalTokens(tokens: string[], env: Record<string, number | boolean>): number {
+  const values: number[] = []
+  const ops: Array<'+' | '-' | '*' | '/'> = []
+  let expectValue = true
+  let i = 0
+  const applyMul = () => {
+    while (ops.length && (ops[ops.length - 1] === '*' || ops[ops.length - 1] === '/')) {
+      const op = ops.pop()!
+      const b = values.pop() ?? 0
+      const a = values.pop() ?? 0
+      values.push(op === '*' ? a * b : b === 0 ? a : a / b)
+    }
+  }
+  while (i < tokens.length) {
+    const tok = tokens[i]!
+    if (expectValue && (tok === '+' || tok === '-')) {
+      const atom = readAtom(tokens, i + 1, env)
+      if (!atom) break
+      values.push(tok === '-' ? -atom.value : atom.value)
+      i = atom.next
+      expectValue = false
+      applyMul()
+      continue
+    }
     if (tok === '+' || tok === '-' || tok === '*' || tok === '/') {
-      op = tok
+      ops.push(tok)
+      i += 1
+      expectValue = true
       continue
     }
-    if (tok in env) {
-      const v = env[tok]
-      apply(typeof v === 'number' ? v : v ? 1 : 0)
-      continue
-    }
-    const n = Number(tok)
-    if (!Number.isNaN(n)) apply(n)
+    const atom = readAtom(tokens, i, env)
+    if (!atom) break
+    values.push(atom.value)
+    i = atom.next
+    expectValue = false
+    applyMul()
+  }
+  let acc = values[0] ?? 0
+  for (let k = 0; k < ops.length; k += 1) {
+    const b = values[k + 1] ?? 0
+    if (ops[k] === '+') acc += b
+    else if (ops[k] === '-') acc -= b
   }
   return acc
 }

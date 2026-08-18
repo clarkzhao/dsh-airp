@@ -5,5 +5,5 @@ export const name = 'airp-play-mask'
 export const inject = ['tools']
 
 export function apply(ctx: Context): void {
-  ctx.tools.restrict({ deny: ['pack.validate'] })
+  ctx.tools.restrict({ deny: ['pack_validate', 'pack_scaffold'] })
 }

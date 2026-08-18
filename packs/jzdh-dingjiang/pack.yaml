@@ -1,0 +1,29 @@
+id: jzdh-dingjiang
+title: 剑烛大荒·定江切片
+locale: zh-CN
+rng: bernoulli
+entry_scene: jzdh.dangkang
+loreBudgetChars: 4000
+description: 官方 demo。大荒定江府，当康庙接「失踪的老贼」。
+license: CC-BY-SA-4.0
+attribution: 同人切片，设定提炼自爱潜水的乌贼《剑烛大荒》，非原文搬运。
+stats:
+  grade: 0
+  skill: 0
+  insight: 0
+  candle: 0
+  moth: 0
+  yin: 0
+  cost: 0
+tags:
+  contest: [对抗, 交手, 动手, 战斗, 偷袭, 拦住, 火并]
+  powang: [破妄, 烛照, 鉴别, 真伪, 阴眼, 识破]
+  cost: [代价, 反噬, 侵蚀, 入局, 阴气, 蛾种近身]
+opening:
+  present: [ding-songyan, xu-changan, er-ren]
+  revealed: [axioms, jzdh-world, jzdh-dingjiang, jzdh-wushu, jzdh-commission]
+  facts:
+    season: 夏
+    weather: 晴暑
+    commission: pending
+    alarm: false

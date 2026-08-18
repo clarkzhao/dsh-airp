@@ -4,6 +4,13 @@ export const DEFAULT_GUARDED = [
   'characters.*.sequence',
   'characters.*.digest',
   'characters.*.lose_control',
+  'characters.*.grade',
+  'characters.*.skill',
+  'characters.*.insight',
+  'characters.*.candle',
+  'characters.*.moth',
+  'characters.*.yin',
+  'characters.*.cost',
   'facts.last_contest',
   'facts.__check_ordinal',
 ] as const
@@ -21,7 +28,7 @@ export type Predicate =
   | { gt: [string, number] }
   | { gte: [string, number] }
 
-export type CheckKind = 'contest' | 'digest' | 'lose_control' | 'generic'
+export type CheckKind = 'contest' | 'digest' | 'lose_control' | 'insight' | 'cost' | 'generic'
 
 export interface CheckDef {
   id: string
@@ -42,6 +49,8 @@ export interface CharacterCard {
   keys: string[]
   pathway?: string
   sequence_declared?: number
+  /** Pack-declared numeric / label fields copied into State at opening. */
+  stats?: Record<string, Json>
   body: string
   provisional?: boolean
 }
@@ -52,6 +61,12 @@ export interface LoreDoc {
   body: string
 }
 
+export interface PackOpening {
+  present?: string[]
+  revealed?: string[]
+  facts?: WorldState['facts']
+}
+
 export interface PackMeta {
   id: string
   title: string
@@ -59,6 +74,17 @@ export interface PackMeta {
   rng?: 'bernoulli' | 'none' | 'd20' | '2d6'
   entry_scene?: string
   loreBudgetChars?: number
+  description?: string
+  license?: string
+  authors?: string[]
+  attribution?: string
+  /** Default character State fields. Pack-specific; LOTM-shaped if omitted. */
+  stats?: Record<string, Json>
+  /** Pointers only check / gm may write. Falls back to DEFAULT_GUARDED. */
+  guarded?: string[]
+  /** IC text → match() tags. Host uses this lexicon instead of hardcoding a world. */
+  tags?: Record<string, string[]>
+  opening?: PackOpening
 }
 
 export interface Canon {
@@ -76,13 +102,13 @@ export interface Canon {
   guarded: string[]
 }
 
-export interface CharacterState {
-  pathway: string
-  sequence: number
-  digest: number
-  lose_control: number
+export type CharacterState = {
+  pathway?: string
+  sequence?: number
+  digest?: number
+  lose_control?: number
   conditions?: string[]
-}
+} & Record<string, Json | undefined>
 
 export interface WorldState {
   turn: number

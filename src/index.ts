@@ -6,7 +6,10 @@ import { defineTool } from '@deepseek-ai/dsh-tools'
 import type { Json } from './kernel/types.ts'
 import { receiptText } from './host/translate.ts'
 import { HostRuntime } from './host/runtime.ts'
-import { bootQuestion, isAskCancelled, isPlayPreset, listPackIds, openRuntime, pathQuestion, presetFromSession, resolveBootChoice, resolvePathAnswer, sessionIsBlank, shouldBootStory } from './host/boot.ts'
+import { bootQuestionFromRefs, isAskCancelled, isAuthorPreset, isPlayPreset, openRuntime, pathQuestion, PICK_NEW_PACK, presetFromSession, resolveBootChoice, resolvePathAnswer, sessionIsBlank, shouldBootStory } from './host/boot.ts'
+import { expandUserPath, loadCatalog, matchTags, resolvePackDir, tagsFromMeta, userPacksDir, type PackRef } from './pack/catalog.ts'
+import { loadPack } from './pack/pack.ts'
+import { scaffoldPack } from './pack/scaffold.ts'
 
 function sessionKey(exec: { agent?: { session?: { id?: string }; id?: string } } | undefined): string {
   return exec?.agent?.session?.id ?? exec?.agent?.id ?? 'default'
@@ -17,12 +20,14 @@ export const inject = ['tools']
 
 export interface Config {
   packsDir?: string
+  userPacksDir?: string
   defaultPack?: string
   loreBudgetChars?: number
 }
 
 export const Config: z<Config> = z.object({
   packsDir: z.string().default('packs'),
+  userPacksDir: z.string().default(''),
   defaultPack: z.string().default('lotm-tingen'),
   loreBudgetChars: z.number().default(4000),
 })
@@ -30,13 +35,17 @@ export const Config: z<Config> = z.object({
 export function apply(ctx: Context, config: Config): void {
   const bundledPacks = resolve(dirname(fileURLToPath(import.meta.url)), '../packs')
   const packsDir = resolve(config.packsDir && config.packsDir !== 'packs' ? config.packsDir : bundledPacks)
+  const extraUserDir = config.userPacksDir ? config.userPacksDir : undefined
   const runtimes = new Map<string, HostRuntime>()
+
+  const catalogOf = () => loadCatalog({ bundledDir: packsDir, userDir: extraUserDir })
 
   const loadRuntime = async (key: string) => {
     const hit = runtimes.get(key)
     if (hit) return hit
     const created = await openRuntime({
       packsDir,
+      userDir: extraUserDir,
       sessionId: key,
       choice: { kind: 'bundled', packId: config.defaultPack ?? 'lotm-tingen' },
     })
@@ -69,13 +78,27 @@ export function apply(ctx: Context, config: Config): void {
     })
   }
 
-  const askChoice = async (agent: unknown, lastError?: string) => {
+  const authorQuestion = (packs: PackRef[]) => {
+    const q = bootQuestionFromRefs(packs)
+    q.questions[0]!.header = '编辑世界'
+    q.questions[0]!.question = '创造者会话：选一个已有包改，或从零写。官方 demo 只读参考；你的包写到 ~/.dsh/airp-packs/<id>/。'
+    q.questions[0]!.options = [
+      ...(q.questions[0]!.options ?? []),
+      { label: PICK_NEW_PACK, description: '用 ask-user 八问生成一个空包骨架，再校验。' },
+    ]
+    return q
+  }
+
+  const askChoice = async (agent: unknown, lastError?: string, author = false) => {
     const questions = ctx.get('userQuestions')
     if (!questions) return { kind: 'bundled' as const, packId: config.defaultPack ?? 'lotm-tingen' }
-    const ids = await listPackIds(packsDir)
+    const catalog = await catalogOf()
     let choice = lastError
       ? resolvePathAnswer(await questions.ask({ questions: pathQuestion(lastError).questions, agent: agent as never }))
-      : resolveBootChoice(await questions.ask({ questions: bootQuestion(ids).questions, agent: agent as never }))
+      : resolveBootChoice(await questions.ask({
+        questions: (author ? authorQuestion(catalog.packs) : bootQuestionFromRefs(catalog.packs)).questions,
+        agent: agent as never,
+      }), catalog.packs)
     let error = lastError
     while (choice.kind === 'need-path') {
       const again = await questions.ask({ questions: pathQuestion(error).questions, agent: agent as never })
@@ -85,22 +108,48 @@ export function apply(ctx: Context, config: Config): void {
     return choice
   }
 
+  const authorGuide = [
+    '你是 AIRP 创造者，不是消费者。',
+    `用户世界包目录：${userPacksDir(extraUserDir)}`,
+    '官方 demo（只读参考）：packs/lotm-tingen、packs/jzdh-dingjiang。不要改 demo 当用户作品。',
+    '流程：用 ask_user_question 按 docs/worldbook-authoring.md 的 8 问引导 → pack_scaffold 写骨架 → 改 YAML/Markdown → pack_validate。',
+    '一条 lore 一个概念。角色卡不写进度数字。数值只经 check / gm。',
+    '试跑鉴定用同一套 check_propose。不要发明第二套规则引擎。',
+  ].join('\n')
+
   const bootSession = async (agent: { id: string; inject: (msg: never) => void }) => {
     const key = String(agent.id)
     let choice
+    const author = isAuthorPreset(sessionPreset(agent as never))
     try {
-      choice = await askChoice(agent)
+      choice = await askChoice(agent, undefined, author)
     } catch (err) {
       if (isAskCancelled(err)) return
       throw err
     }
+    if (author && choice.kind === 'new-pack') {
+      agent.inject({
+        content: [{ type: 'text', text: `${authorGuide}\n\n用户选择从零写包。先 ask_user_question 问齐 8 问，再 pack_scaffold。` }],
+        source: { kind: 'plugin', plugin: 'dsh-airp' },
+      } as never)
+      return
+    }
     for (let attempt = 0; attempt < 3; attempt += 1) {
       try {
-        const created = await openRuntime({ packsDir, sessionId: key, choice })
+        const created = await openRuntime({
+          packsDir,
+          userDir: extraUserDir,
+          sessionId: key,
+          choice: choice.kind === 'new-pack'
+            ? { kind: 'bundled', packId: config.defaultPack ?? 'lotm-tingen' }
+            : choice,
+          role: author ? 'author' : 'play',
+        })
         if (config.loreBudgetChars) created.canon.meta.loreBudgetChars = config.loreBudgetChars
         runtimes.set(key, created)
+        const brief = author ? `${authorGuide}\n\n当前加载：\n${created.bootBrief()}` : created.bootBrief()
         agent.inject({
-          content: [{ type: 'text', text: created.bootBrief() }],
+          content: [{ type: 'text', text: brief }],
           source: { kind: 'plugin', plugin: 'dsh-airp' },
         } as never)
         return created
@@ -108,7 +157,7 @@ export function apply(ctx: Context, config: Config): void {
         if (isAskCancelled(err)) return
         const message = err instanceof Error ? err.message : String(err)
         try {
-          choice = await askChoice(agent, message)
+          choice = await askChoice(agent, message, author)
         } catch (again) {
           if (isAskCancelled(again)) return
           throw again
@@ -127,67 +176,115 @@ export function apply(ctx: Context, config: Config): void {
     }
 
     const runTool = async (name: string, args: Record<string, unknown>, exec: { agent?: { session?: { id?: string }; id?: string } }) => {
+      if (name === 'pack_validate') {
+        const catalog = await catalogOf()
+        const packId = typeof args.packId === 'string' ? args.packId : undefined
+        const dir = packId
+          ? (packId.includes('/') || packId.includes('\\') || packId.startsWith('~')
+            ? expandUserPath(packId)
+            : await resolvePackDir({ catalog, packId }).catch(() => expandUserPath(packId)))
+          : undefined
+        if (dir) {
+          const loaded = await loadPack(dir)
+          return {
+            ok: loaded.ok,
+            packId: loaded.canon?.meta.id ?? packId ?? '',
+            dir,
+            diagnostics: loaded.diagnostics.map((d) => ({ code: d.code, message: d.message })),
+          }
+        }
+      }
       const rt = await loadRuntime(sessionKey(exec))
       const out = rt.dispatch({ kind: 'tool', name, args })
-      if (!out.ok && name !== 'pack.validate') throw new Error(out.text)
-      return name === 'pack.validate' || name === 'check.match' ? JSON.parse(out.text) as Json : out.text
+      if (!out.ok && name !== 'pack_validate') throw new Error(out.text)
+      return name === 'pack_validate' || name === 'check_match' ? JSON.parse(out.text) as Json : out.text
     }
 
     tools.register(defineTool({
-      name: 'lore.get',
+      name: 'lore_get',
       description: 'Fetch a Canon lore document by key. Does not change numeric state.',
       parameters: { key: { type: 'string', required: true, description: 'lore key from the thin index' } },
       output: jsonOut,
-      execute: (args, exec) => runTool('lore.get', args, exec),
+      execute: (args, exec) => runTool('lore_get', args, exec),
     }))
 
     tools.register(defineTool({
-      name: 'state.read',
+      name: 'state_read',
       description: 'Read the current world state projection, optionally at a pointer.',
       parameters: { pointer: { type: 'string', description: 'optional JSON pointer like facts.weather' } },
       output: jsonOut,
-      execute: (args, exec) => runTool('state.read', args, exec),
+      execute: (args, exec) => runTool('state_read', args, exec),
     }))
 
     tools.register(defineTool({
-      name: 'check.propose',
+      name: 'check_propose',
       description: 'Propose an adjudication. Numeric fields only change if the engine accepts.',
       parameters: {
         checkId: { type: 'string', required: true, description: 'Canon check id' },
         actors: { type: 'object', additionalProperties: true, description: 'slot -> character id' },
       },
       output: jsonOut,
-      execute: (args, exec) => runTool('check.propose', args, exec),
+      execute: (args, exec) => runTool('check_propose', args, exec),
     }))
 
     tools.register(defineTool({
-      name: 'state.propose_fact',
+      name: 'state_propose_fact',
       description: 'Propose a narrative fact. Guarded numeric pointers are rejected.',
       parameters: {
         pointer: { type: 'string', required: true },
         value: { type: 'json', required: true },
       },
       output: jsonOut,
-      execute: (args, exec) => runTool('state.propose_fact', args, exec),
+      execute: (args, exec) => runTool('state_propose_fact', args, exec),
     }))
 
     tools.register(defineTool({
-      name: 'check.match',
-      description: 'Evaluate author conditions against tags. If a check is forced, call check.propose with the returned actors.',
+      name: 'check_match',
+      description: 'Evaluate author conditions against tags. If a check is forced, call check_propose with the returned actors.',
       parameters: {
         tags: { type: 'array', items: { type: 'string' }, required: true },
         actors: { type: 'object', additionalProperties: true },
       },
       output: jsonOut,
-      execute: (args, exec) => runTool('check.match', args, exec),
+      execute: (args, exec) => runTool('check_match', args, exec),
     }))
 
     tools.register(defineTool({
-      name: 'pack.validate',
-      description: 'Validate the current world pack. Author preset only.',
-      parameters: { packId: { type: 'string', description: 'pack directory name' } },
+      name: 'pack_validate',
+      description: 'Validate a world pack. Pass pack id, or a directory that contains pack.yaml. Author preset only.',
+      parameters: { packId: { type: 'string', description: 'pack id, or path to a pack directory' } },
       output: jsonOut,
-      execute: (args, exec) => runTool('pack.validate', args, exec),
+      execute: (args, exec) => runTool('pack_validate', args, exec),
+    }))
+
+    tools.register(defineTool({
+      name: 'pack_scaffold',
+      description: 'Write a new world-pack skeleton under ~/.dsh/airp-packs/<id>/ (or destDir). Author preset only. Ask the user first.',
+      parameters: {
+        id: { type: 'string', required: true, description: 'kebab-case pack id' },
+        title: { type: 'string', required: true, description: 'human title' },
+        protagonistId: { type: 'string', description: 'opening character id' },
+        protagonistName: { type: 'string', description: 'opening character display name' },
+        commission: { type: 'string', description: 'one-paragraph opening commission' },
+        axioms: { type: 'array', items: { type: 'string' }, description: '4–8 immutable world rules' },
+        entry_scene: { type: 'string', description: 'opening scene id' },
+        destDir: { type: 'string', description: 'optional absolute directory; defaults to ~/.dsh/airp-packs/<id>' },
+      },
+      output: jsonOut,
+      execute: async (args) => {
+        const axioms = Array.isArray(args.axioms) ? args.axioms.map(String) : undefined
+        const result = await scaffoldPack({
+          id: String(args.id ?? ''),
+          title: String(args.title ?? args.id ?? ''),
+          protagonistId: typeof args.protagonistId === 'string' ? args.protagonistId : undefined,
+          protagonistName: typeof args.protagonistName === 'string' ? args.protagonistName : undefined,
+          commission: typeof args.commission === 'string' ? args.commission : undefined,
+          axioms,
+          entry_scene: typeof args.entry_scene === 'string' ? args.entry_scene : undefined,
+          destDir: typeof args.destDir === 'string' ? args.destDir : undefined,
+        })
+        return result as unknown as Json
+      },
     }))
   }
 
@@ -246,7 +343,7 @@ export function apply(ctx: Context, config: Config): void {
   ctx.on('session/event', (session, event) => {
     const typed = event as { type?: string; data?: { agentPreset?: string } }
     if (typed.type !== 'agent-preset/selected') return
-    if (!isPlayPreset(typed.data?.agentPreset)) return
+    if (!isPlayPreset(typed.data?.agentPreset) && !isAuthorPreset(typed.data?.agentPreset)) return
     const agents = ctx.get('agents')
     const agent = agents?.get(session.id)
     if (!agent) return
@@ -265,10 +362,10 @@ export function apply(ctx: Context, config: Config): void {
     })
     const text = texts.join('\n')
     if (!text) return next()
-    const tags: string[] = []
-    if (/对抗|交手|动手|战斗|偷袭|拦住/.test(text)) tags.push('contest')
-    if (/扮演|消化|魔药/.test(text)) tags.push('digest')
-    if (/失控|污染|低语/.test(text)) tags.push('lose_control')
+    let lexicon = tagsFromMeta()
+    const cached = runtimes.get(String(payload.agent.id))
+    if (cached) lexicon = tagsFromMeta(cached.canon.meta)
+    const tags = matchTags(text, lexicon)
     if (tags.length === 0) return next()
     try {
       const rt = await loadRuntime(String(payload.agent.id))
@@ -288,6 +385,7 @@ export function apply(ctx: Context, config: Config): void {
 
 export { WorldKernel } from './kernel/world-kernel.ts'
 export { loadPack, validatePack, initialState } from './pack/pack.ts'
+export { loadCatalog, matchTags, tagsFromMeta, userPacksDir } from './pack/catalog.ts'
 export { intentFromTool, intentFromCommand, toolsFor } from './host/translate.ts'
 export { HostRuntime } from './host/runtime.ts'
 export { shouldBootStory, resolveBootChoice, resolvePathAnswer } from './host/boot.ts'

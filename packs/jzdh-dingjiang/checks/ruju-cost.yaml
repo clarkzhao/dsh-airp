@@ -1,0 +1,19 @@
+id: ruju-cost
+when: 接触邪异并付代价（触碰幽冥之物/阴尸草、被蛾种近身、透支本源）
+kind: cost
+condition:
+  tag: cost
+inputs:
+  moth: characters.{actor}.moth
+  yin: characters.{actor}.yin
+formula: |
+  p = clamp(1 - moth * 0.5 - yin * 0.5)
+outcomes:
+  success:
+    apply:
+      facts.held_together: true
+  failure:
+    apply:
+      facts.held_together: false
+      characters.{actor}.yin: "+0.15"
+      characters.{actor}.moth: "+0.1"

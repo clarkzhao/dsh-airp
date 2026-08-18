@@ -200,6 +200,26 @@ test('prior fact does not change next check u', () => {
   assert.equal(direct.receipt.xi.u, thenCheck.receipt.xi.u)
 })
 
+test('formula multiplication binds tighter than addition', () => {
+  const k = new WorldKernel(canon({
+    checks: {
+      'contest-sequence': {
+        ...contestCheck(),
+        inputs: { insight: 'characters.klein.digest', candle: 'characters.klein.lose_control' },
+        formula: 'p = 0.35 + insight * 0.25 + candle * 0.3',
+      },
+    },
+  }))
+  const result = k.turn(state(), {
+    type: 'check',
+    checkId: 'contest-sequence',
+    actors: { attacker: 'klein', defender: 'opponent' },
+  }, { u: 0.1 })
+  assert.equal(result.ok, true)
+  if (!result.ok || result.receipt.kind !== 'check') return
+  assert.ok(Math.abs(result.receipt.p - (0.35 + 0.2 * 0.25 + 0.1 * 0.3)) < 1e-6)
+})
+
 test('lore over budget is BUDGET', () => {
   const k = new WorldKernel(canon({
     meta: { id: 'lotm-tingen', title: '廷根切片', loreBudgetChars: 8 },

@@ -1,0 +1,23 @@
+id: contest-wushu
+when: 武者直接对抗（帮派火并、蛾人袭击、以武犯禁）
+kind: contest
+condition:
+  all:
+    - tag: contest
+    - present: ["$attacker", "$defender"]
+inputs:
+  atk: characters.{attacker}.grade
+  def: characters.{defender}.grade
+  atk_skill: characters.{attacker}.skill
+  def_skill: characters.{defender}.skill
+formula: |
+  strength = def - atk + (atk_skill - def_skill)
+  p = sigmoid(-strength / 1.5)
+outcomes:
+  success:
+    apply:
+      facts.last_contest: attacker
+  failure:
+    apply:
+      facts.last_contest: defender
+      characters.{attacker}.cost: "+0.15"

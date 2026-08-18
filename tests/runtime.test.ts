@@ -16,7 +16,7 @@ async function runtime() {
 test('retry rolls state back to before last check; old line stays', async () => {
   const rt = await runtime()
   const before = structuredClone(rt.snapshot().state)
-  const fought = rt.dispatch({ kind: 'tool', name: 'check.propose', args: {
+  const fought = rt.dispatch({ kind: 'tool', name: 'check_propose', args: {
     checkId: 'contest-sequence',
     actors: { attacker: 'klein', defender: 'opponent' },
   }, u: 0.81 })
@@ -38,10 +38,10 @@ test('new session reloads canon so YAML edits apply', async () => {
   const a = new HostRuntime({ canon: aCanon, sessionId: 'a', seed: 's' })
   bCanon.checks['contest-sequence']!.formula = 'p = 0.99'
   const b = new HostRuntime({ canon: bCanon, sessionId: 'b', seed: 's' })
-  const ra = a.dispatch({ kind: 'tool', name: 'check.propose', args: {
+  const ra = a.dispatch({ kind: 'tool', name: 'check_propose', args: {
     checkId: 'contest-sequence', actors: { attacker: 'klein', defender: 'opponent' },
   }, u: 0.5 })
-  const rb = b.dispatch({ kind: 'tool', name: 'check.propose', args: {
+  const rb = b.dispatch({ kind: 'tool', name: 'check_propose', args: {
     checkId: 'contest-sequence', actors: { attacker: 'klein', defender: 'opponent' },
   }, u: 0.5 })
   assert.equal(ra.ok && rb.ok, true)
@@ -65,19 +65,19 @@ test('ic tags force check before the model proposes', async () => {
   assert.equal(out.result.events[0]?.type, 'check')
 })
 
-test('play role cannot pack.validate; author can', async () => {
+test('play role cannot pack_validate; author can', async () => {
   const play = await runtime()
-  const denied = play.dispatch({ kind: 'tool', name: 'pack.validate', args: {}, role: 'play' })
+  const denied = play.dispatch({ kind: 'tool', name: 'pack_validate', args: {}, role: 'play' })
   assert.equal(denied.ok, false)
   const author = new HostRuntime({ canon: play.canon, sessionId: 'auth', seed: 's', role: 'author' })
-  const ok = author.dispatch({ kind: 'tool', name: 'pack.validate', args: {}, role: 'author' })
+  const ok = author.dispatch({ kind: 'tool', name: 'pack_validate', args: {}, role: 'author' })
   assert.equal(ok.ok, true)
 })
 
 test('events are the source of truth for retry', async () => {
   const rt = await runtime()
-  rt.dispatch({ kind: 'tool', name: 'state.propose_fact', args: { pointer: 'facts.weather', value: '雨' } })
-  rt.dispatch({ kind: 'tool', name: 'check.propose', args: {
+  rt.dispatch({ kind: 'tool', name: 'state_propose_fact', args: { pointer: 'facts.weather', value: '雨' } })
+  rt.dispatch({ kind: 'tool', name: 'check_propose', args: {
     checkId: 'contest-sequence', actors: { attacker: 'klein', defender: 'opponent' },
   }, u: 0.81 })
   assert.equal(rt.events().filter((e) => e.type === 'check').length, 1)

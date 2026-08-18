@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { test } from 'node:test'
-import { BUNDLED_TINGEN, PICK_CUSTOM, bootQuestion, isAskCancelled, looksLikePackPath, openRuntime, pathQuestion, presetFromSession, resolveBootChoice, resolvePathAnswer, sessionIsBlank, shouldBootStory } from '../src/host/boot.ts'
+import { BUNDLED_JZDH, BUNDLED_TINGEN, PICK_CUSTOM, PICK_NEW_PACK, bootQuestion, bootQuestionFromRefs, isAskCancelled, looksLikePackPath, openRuntime, pathQuestion, presetFromSession, resolveBootChoice, resolvePathAnswer, sessionIsBlank, shouldBootStory } from '../src/host/boot.ts'
 
 const packsDir = join(dirname(fileURLToPath(import.meta.url)), '..', 'packs')
 
@@ -16,7 +16,7 @@ test('boot card offers bundled tingen and a custom path slot', () => {
 test('only a fresh airp-play session boots the story', () => {
   assert.equal(shouldBootStory({ presetId: 'airp-play', source: 'startup' }), true)
   assert.equal(shouldBootStory({ presetId: 'airp-play', source: 'resume' }), false)
-  assert.equal(shouldBootStory({ presetId: 'airp-author', source: 'startup' }), false)
+  assert.equal(shouldBootStory({ presetId: 'airp-author', source: 'startup' }), true)
   assert.equal(shouldBootStory({ presetId: 'cordis', source: 'startup' }), false)
   assert.equal(shouldBootStory({ presetId: undefined, source: 'startup' }), false)
   assert.equal(shouldBootStory({ presetId: 'airp-play', blank: false }), false)
@@ -40,7 +40,7 @@ test('switching to airp-play while the session is still blank should boot', () =
 })
 
 test('selecting bundled tingen opens a runtime with commission brief', async () => {
-  const choice = resolveBootChoice({ answers: [{ id: 'boot_pack', selected: [BUNDLED_TINGEN] }] }, packsDir)
+  const choice = resolveBootChoice({ answers: [{ id: 'boot_pack', selected: [BUNDLED_TINGEN] }] })
   assert.deepEqual(choice, { kind: 'bundled', packId: 'lotm-tingen' })
   const rt = await openRuntime({ packsDir, sessionId: 'boot-1', choice })
   const brief = rt.bootBrief()
@@ -72,6 +72,25 @@ test('selected absolute path without custom field still counts as custom', () =>
   })
   assert.deepEqual(choice, { kind: 'custom', path: '/Users/clark/Worlds/mine' })
   assert.equal(looksLikePackPath('/Users/clark/Worlds/mine'), true)
+})
+
+test('boot card lists dingjiang demo and author can pick new pack', () => {
+  const q = bootQuestionFromRefs([
+    { id: 'lotm-tingen', title: '廷根切片', dir: 'x', origin: 'bundled' },
+    { id: 'jzdh-dingjiang', title: '剑烛大荒·定江切片', dir: 'y', origin: 'bundled' },
+    { id: 'my-pack', title: '我的包', dir: 'z', origin: 'user', description: 'community' },
+  ])
+  const labels = q.questions[0]!.options!.map((o) => o.label)
+  assert.ok(labels.includes(BUNDLED_TINGEN))
+  assert.ok(labels.includes(BUNDLED_JZDH))
+  assert.ok(labels.some((label) => label.includes('my-pack')))
+  assert.deepEqual(resolveBootChoice({ answers: [{ id: 'boot_pack', selected: [BUNDLED_JZDH] }] }), {
+    kind: 'bundled',
+    packId: 'jzdh-dingjiang',
+  })
+  assert.deepEqual(resolveBootChoice({ answers: [{ id: 'boot_pack', selected: [PICK_NEW_PACK] }] }), {
+    kind: 'new-pack',
+  })
 })
 
 test('pick-custom without a path asks again and does not fall back to tingen', () => {

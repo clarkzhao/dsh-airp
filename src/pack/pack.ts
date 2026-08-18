@@ -1,7 +1,7 @@
 import { readdir, readFile } from 'node:fs/promises'
 import { basename, join } from 'node:path'
 import yaml from 'js-yaml'
-import { DEFAULT_GUARDED, type Canon, type CharacterCard, type CheckDef, type LoreDoc, type PackMeta, type Predicate, type WorldState } from '../kernel/types.ts'
+import { DEFAULT_GUARDED, type Canon, type CharacterCard, type CheckDef, type Json, type LoreDoc, type PackMeta, type Predicate, type WorldState } from '../kernel/types.ts'
 
 export interface PackDiagnostic {
   code: 'MISSING_FILE' | 'BAD_YAML' | 'BAD_POINTER' | 'MISSING_CARD' | 'BAD_CONDITION' | 'GUARDED_IN_FACT_SCHEMA'
@@ -55,6 +55,7 @@ export async function loadPack(dir: string): Promise<PackLoadResult> {
       keys: Array.isArray(parsed.data.keys) ? parsed.data.keys.map(String) : [],
       pathway: parsed.data.pathway ? String(parsed.data.pathway) : undefined,
       sequence_declared: typeof parsed.data.sequence_declared === 'number' ? parsed.data.sequence_declared : undefined,
+      stats: isJsonRecord(parsed.data.stats) ? parsed.data.stats : undefined,
       body: parsed.body,
       provisional: Boolean(parsed.data.provisional),
     }
@@ -98,19 +99,34 @@ export function validatePack(canon: Canon): PackDiagnostic[] {
   return out
 }
 
+const LOTM_STATS: Record<string, Json> = {
+  pathway: 'unknown',
+  sequence: 9,
+  digest: 0,
+  lose_control: 0,
+}
+
+export function defaultCharacterStats(canon: Canon): Record<string, Json> {
+  return canon.meta.stats && Object.keys(canon.meta.stats).length > 0
+    ? { ...canon.meta.stats }
+    : { ...LOTM_STATS }
+}
+
+export function openingCharacterState(canon: Canon, card: CharacterCard): WorldState['characters'][string] {
+  const state = defaultCharacterStats(canon)
+  if (card.pathway) state.pathway = card.pathway
+  if (card.sequence_declared !== undefined) state.sequence = card.sequence_declared
+  if (card.stats) Object.assign(state, card.stats)
+  return state
+}
+
 export function initialState(canon: Canon, seed: string): WorldState {
-  const opening = (canon.meta as PackMeta & { opening?: { present?: string[]; revealed?: string[]; facts?: WorldState['facts'] } }).opening
+  const opening = canon.meta.opening
   const present = opening?.present
     ?? canon.index.characters.filter((id) => canon.characters[id] && !canon.characters[id]!.provisional)
   const characters: WorldState['characters'] = {}
-  for (const id of present) {
-    const card = canon.characters[id]!
-    characters[id] = {
-      pathway: card.pathway ?? 'unknown',
-      sequence: card.sequence_declared ?? 9,
-      digest: 0,
-      lose_control: 0,
-    }
+  for (const [id, card] of Object.entries(canon.characters)) {
+    characters[id] = openingCharacterState(canon, card)
   }
   return {
     turn: 0,
@@ -162,6 +178,10 @@ async function listMd(dir: string): Promise<string[]> {
   } catch {
     return []
   }
+}
+
+function isJsonRecord(value: unknown): value is Record<string, Json> {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value)
 }
 
 function parseFrontmatter(text: string): { data: Record<string, unknown>; body: string } {

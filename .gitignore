@@ -2,3 +2,12 @@ node_modules/
 lib/
 *.tgz
 .DS_Store
+
+# Community / local world packs. Official demos live in packs/lotm-tingen and
+# packs/jzdh-dingjiang and are tracked. Everything else is the author's.
+packs/*
+!packs/lotm-tingen/
+!packs/lotm-tingen/**
+!packs/jzdh-dingjiang/
+!packs/jzdh-dingjiang/**
+!packs/README.md
