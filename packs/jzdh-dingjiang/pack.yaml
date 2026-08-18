@@ -15,6 +15,7 @@ stats:
   moth: 0
   yin: 0
   cost: 0
+  mobility: 0
 tags:
   contest: [对抗, 交手, 动手, 战斗, 偷袭, 拦住, 火并]
   powang: [破妄, 烛照, 鉴别, 真伪, 阴眼, 识破]
@@ -32,3 +33,34 @@ opening:
     play_mode: easy
     watch: 日中
     outside_gate: false
+places:
+  jzdh.dangkang:
+    edges:
+      jzdh.dangjia: { beats: 1 }
+      jzdh.zhenfu: { beats: 1 }
+      jzdh.zongmen: { beats: 1 }
+      jzdh.luanzanggang: { beats: 2 }
+  jzdh.dangjia:
+    edges:
+      jzdh.dangkang: { beats: 1 }
+      jzdh.zhenfu: { beats: 1 }
+      jzdh.zongmen: { beats: 1 }
+      jzdh.luanzanggang: { beats: 2 }
+  jzdh.zhenfu:
+    edges:
+      jzdh.dangkang: { beats: 1 }
+      jzdh.dangjia: { beats: 1 }
+      jzdh.zongmen: { beats: 1 }
+      jzdh.luanzanggang: { beats: 2 }
+  jzdh.zongmen:
+    edges:
+      jzdh.dangkang: { beats: 1 }
+      jzdh.dangjia: { beats: 1 }
+      jzdh.zhenfu: { beats: 1 }
+      jzdh.luanzanggang: { beats: 2 }
+  jzdh.luanzanggang:
+    edges:
+      jzdh.dangkang: { beats: 2 }
+      jzdh.dangjia: { beats: 2 }
+      jzdh.zhenfu: { beats: 2 }
+      jzdh.zongmen: { beats: 2 }

@@ -272,6 +272,7 @@ export function apply(ctx: Context, config: Config): void {
       parameters: {
         checkId: { type: 'string', required: true, description: 'Canon check id' },
         actors: { type: 'object', additionalProperties: true, description: 'slot -> character id' },
+        patch: { type: 'object', additionalProperties: true, description: 'optional extra apply, e.g. { scene: pack.b } for travel' },
       },
       output: jsonOut,
       execute: (args, exec) => runTool('check_propose', args, exec),

@@ -64,6 +64,7 @@ export class HostRuntime {
       `characters: ${this.canon.index.characters.join(', ')}`,
       `lore: ${this.canon.index.lore.join(', ')}`,
       `pc: ${this.state.present[0] ?? '(none)'}`,
+      this.travelLine(),
       'Numeric fields only change via check_propose or /gm. Walking is not a check.',
     ].join('\n')
   }
@@ -97,6 +98,20 @@ export class HostRuntime {
       '你已经在引擎里。禁止再问引擎在哪、不要扫工作区、不要用 ask_user_question 找路径。',
       '开场直接叙述当前场景。用 lore_get / state_read / check_propose / state_propose_fact。',
     ].filter((line) => line !== undefined).join('\n')
+  }
+
+  private travelLine(): string {
+    const places = this.canon.meta.places
+    if (!places) return ''
+    const beat = typeof this.state.clock?.beat === 'number' ? this.state.clock.beat : 0
+    const pc = this.state.present[0]
+    const mobility = pc && typeof this.state.characters[pc]?.mobility === 'number' ? this.state.characters[pc]!.mobility : 0
+    const here = places[this.state.scene]
+    const hops = Object.entries(here?.edges ?? {}).map(([to, edge]) => {
+      const need = edge.need ? ` ${edge.need}` : ''
+      return `${to}${edge.beats ? `:${edge.beats}拍` : ''}${need}`
+    })
+    return `clock.beat=${beat} mobility=${mobility}${hops.length ? ` 邻接 ${hops.join('；')}` : ''}`
   }
 
   private arrivalNote(): string {

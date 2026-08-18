@@ -14,6 +14,8 @@ export const DEFAULT_GUARDED = [
   'facts.last_contest',
   'facts.__check_ordinal',
   'scene',
+  'clock.beat',
+  'characters.*.mobility',
 ] as const
 
 export type Patch = Record<string, Json | string>
@@ -30,6 +32,15 @@ export type Predicate =
   | { gte: [string, number] }
 
 export type CheckKind = 'contest' | 'digest' | 'lose_control' | 'insight' | 'cost' | 'generic'
+
+export interface PlaceEdge {
+  beats?: number
+  need?: string
+}
+
+export interface PlaceDef {
+  edges?: Record<string, PlaceEdge>
+}
 
 export interface CheckDef {
   id: string
@@ -102,6 +113,8 @@ export interface PackMeta {
   /** IC text → match() tags. Host uses this lexicon instead of hardcoding a world. */
   tags?: Record<string, string[]>
   opening?: PackOpening
+  /** Optional travel graph. Missing = no spacetime rules. */
+  places?: Record<string, PlaceDef>
 }
 
 export interface Canon {
@@ -135,12 +148,13 @@ export interface WorldState {
   present: string[]
   characters: Record<string, CharacterState>
   facts: Record<string, Json>
+  clock?: { beat: number }
 }
 
 export type Intent =
   | { type: 'look'; pointer?: string }
   | { type: 'lore'; key: string }
-  | { type: 'check'; checkId: string; actors: Record<string, string> }
+  | { type: 'check'; checkId: string; actors: Record<string, string>; patch?: Patch }
   | { type: 'fact'; pointer: string; value: Json }
   | { type: 'gm'; patch: Patch; reason: string }
   | { type: 'correct'; pointer: string; value: Json }
@@ -153,6 +167,7 @@ export type KernelErrorCode =
   | 'MISSING_REASON'
   | 'UNKNOWN_LORE'
   | 'UNKNOWN_ACTOR'
+  | 'TRAVEL_BLOCKED'
 
 export interface KernelError {
   ok: false

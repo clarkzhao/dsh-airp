@@ -123,6 +123,7 @@ export function scaffoldFiles(spec: ScaffoldSpec): Record<string, string> {
     '  grade: 0',
     '  skill: 0',
     '  cost: 0',
+    '  mobility: 0',
     'tags:',
     '  contest: [对抗, 交手, 动手, 战斗, 偷袭]',
     '  cost: [代价, 反噬, 侵蚀, 入局]',
@@ -131,6 +132,9 @@ export function scaffoldFiles(spec: ScaffoldSpec): Record<string, string> {
     `  revealed: [${revealed.join(', ')}]`,
     '  facts:',
     ...factLines,
+    'places:',
+    `  ${scene}:`,
+    `    edges: {}`,
     '',
   ].join('\n')
 

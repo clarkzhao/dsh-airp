@@ -8,6 +8,7 @@ import {
   type Json,
   type KernelErrorCode,
   type Patch,
+  type PlaceEdge,
   type Predicate,
   type Receipt,
   type StoryEvent,
@@ -42,7 +43,7 @@ export class WorldKernel {
       case 'lore':
         return this.lore(snapshot, intent.key)
       case 'check':
-        return this.runCheck(snapshot, intent.checkId, intent.actors, options)
+        return this.runCheck(snapshot, intent.checkId, intent.actors, options, intent.patch)
       case 'fact':
         return this.writeFact(snapshot, 'fact', intent.pointer, intent.value)
       case 'correct':
@@ -60,7 +61,7 @@ export class WorldKernel {
     return ok(state, { kind: 'lore', key, body: doc.body }, [])
   }
 
-  private runCheck(state: WorldState, checkId: string, actors: Record<string, string>, options: TurnOptions): TurnResult {
+  private runCheck(state: WorldState, checkId: string, actors: Record<string, string>, options: TurnOptions, extra?: Patch): TurnResult {
     const def = this.canon.checks[checkId]
     if (!def) return fail(state, 'UNKNOWN_CHECK', `unknown check ${checkId}`)
     for (const [slot, id] of Object.entries(actors)) {
@@ -72,7 +73,9 @@ export class WorldKernel {
     const rng = options.rng ?? this.canon.meta.rng ?? 'bernoulli'
     const u = options.u ?? (rng === 'none' ? 0 : deriveU(state.rng_seed, checkId, checkOrdinal(state)))
     const outcome: 'success' | 'failure' = rng === 'none' ? (p >= 0.5 ? 'success' : 'failure') : (u < p ? 'success' : 'failure')
-    const patch = instantiatePatch(def.outcomes[outcome]?.apply ?? {}, actors)
+    const patch = instantiatePatch({ ...(def.outcomes[outcome]?.apply ?? {}), ...(extra ?? {}) }, actors)
+    const travel = this.guardTravel(state, patch)
+    if (travel) return travel
     applyPatch(state, patch)
     writePointer(state, 'facts.__check_ordinal', checkOrdinal(state) + 1)
     state.turn += 1
@@ -116,9 +119,27 @@ export class WorldKernel {
   private gm(state: WorldState, patch: Patch, reason: string): TurnResult {
     if (!reason.trim()) return fail(state, 'MISSING_REASON', 'gm requires a reason')
     const applied = instantiatePatch(patch, {})
+    const travel = this.guardTravel(state, applied)
+    if (travel) return travel
     applyPatch(state, applied)
     state.turn += 1
     return ok(state, { kind: 'gm', patch: applied }, [{ type: 'gm', patch: applied, reason: reason.trim() }])
+  }
+
+  private guardTravel(state: WorldState, patch: Record<string, Json>): TurnResult | undefined {
+    if (!Object.prototype.hasOwnProperty.call(patch, 'scene')) return undefined
+    const dest = patch.scene
+    if (typeof dest !== 'string') return fail(state, 'TRAVEL_BLOCKED', 'scene must be a string')
+    const blocked = travelBlocked(this.canon, state, dest)
+    if (!blocked) {
+      const edge = edgeOf(this.canon, state.scene, dest)
+      if (edge?.beats) {
+        const beat = typeof state.clock?.beat === 'number' ? state.clock.beat : 0
+        patch['clock.beat'] = beat + edge.beats
+      }
+      return undefined
+    }
+    return fail(state, 'TRAVEL_BLOCKED', blocked)
   }
 }
 
@@ -417,4 +438,40 @@ function clone<T>(value: T): T {
 
 function round4(n: number): number {
   return Math.round(n * 10000) / 10000
+}
+
+function placesOf(canon: Canon): Record<string, { edges?: Record<string, PlaceEdge> }> | undefined {
+  const places = canon.meta.places
+  if (!places || Object.keys(places).length === 0) return undefined
+  return places
+}
+
+function edgeOf(canon: Canon, from: string, to: string): PlaceEdge | undefined {
+  if (from === to) return {}
+  return placesOf(canon)?.[from]?.edges?.[to]
+}
+
+function travelBlocked(canon: Canon, state: WorldState, dest: string): string | undefined {
+  const places = placesOf(canon)
+  if (!places) return undefined
+  if (state.scene === dest) return undefined
+  const edge = edgeOf(canon, state.scene, dest)
+  if (!edge) return `no edge ${state.scene} → ${dest}`
+  const need = edge.need?.trim()
+  if (!need) return undefined
+  const match = /^(mobility)\s*(>=|>|<=|<|=)\s*(-?\d+(?:\.\d+)?)$/.exec(need)
+  if (!match) return `bad travel need ${need}`
+  const pc = state.present[0]
+  const raw = pc ? state.characters[pc]?.mobility : undefined
+  const have = typeof raw === 'number' ? raw : 0
+  const want = Number(match[3])
+  const op = match[2]!
+  const ok =
+    op === '>=' ? have >= want
+      : op === '>' ? have > want
+        : op === '<=' ? have <= want
+          : op === '<' ? have < want
+            : have === want
+  if (ok) return undefined
+  return `need ${need} (have ${have})`
 }

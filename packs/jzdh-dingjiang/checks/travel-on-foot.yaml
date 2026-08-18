@@ -1,0 +1,9 @@
+id: travel-on-foot
+when: 沿已有道路换场
+kind: generic
+inputs: {}
+formula: |
+  p = 1
+outcomes:
+  success:
+    apply: {}

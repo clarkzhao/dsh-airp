@@ -91,11 +91,11 @@ Canon.pack.yaml
     pack.a: { edges: { pack.b: { beats: 4, need: "mobility>=1" } } }
 ```
 
-- `fact` 写 `scene` 若跨边且不满足 `beats` / `need` → `CHANNEL_VIOLATION`，State 不变。
-- 合法换场：`turn(check: travel)` 扣 beats、改 `scene`、可选改 `present`。
-- 解锁：普通 check 成功把 `mobility` +1（轻功、载具、飞车都是同一个数字）。后期 `need` 消失 = 约束被玩掉。
-- 没有 `places` 的包行为与现在相同（廷根夹具零改动）。
-- 生产者八问不为此加第三屏；scaffold 可写一张两节点示例图，作者删掉即无约束。
+- `fact` 写 `scene` 仍 `CHANNEL_VIOLATION`。
+- check / gm 写 `scene`：无 `places` 则放行；有图则必须有边且满足 `need`，否则 `TRAVEL_BLOCKED`。Kernel 不读世界名。
+- 合法换场：pack 自己的 travel check 改 `scene`，引擎按边加 `clock.beat`。
+- 解锁：任意 check 把 `characters.pc.mobility` +1。轻功、载具、飞车都是同一个数字。
+- 生产者八问不加第三屏；scaffold 写出空 `places`，作者填边或整段删掉。
 
 DoD：夹具用 **模板包变体**（A→B 要 4 beat、mobility=0 被拒；mobility≥1 一次 check 到达）。不要用定江地图当回归。
 

@@ -2,6 +2,7 @@ checks:
   - contest-wushu
   - powang-zhuozhao
   - ruju-cost
+  - travel-on-foot
 characters:
   - ding-songyan
   - xu-changan

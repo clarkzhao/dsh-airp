@@ -21,6 +21,7 @@ export type PackDiagnosticCode =
   | 'COMMISSION_TOO_LONG'
   | 'MACRO_SPEAK'
   | 'UNMAPPED_ANSWER'
+  | 'BAD_PLACE'
 
 export interface PackDiagnostic {
   code: PackDiagnosticCode
@@ -187,6 +188,21 @@ export function validatePack(canon: Canon): PackDiagnostic[] {
       })
     }
   }
+  const places = canon.meta.places ?? {}
+  const known = new Set([...(canon.index.scenes ?? []), canon.meta.entry_scene].filter(Boolean) as string[])
+  for (const [from, place] of Object.entries(places)) {
+    if (!known.has(from)) {
+      out.push({ code: 'BAD_PLACE', severity: 'warning', message: `places.${from} is not an index scene` })
+    }
+    for (const [to, edge] of Object.entries(place?.edges ?? {})) {
+      if (!known.has(to)) {
+        out.push({ code: 'BAD_PLACE', severity: 'warning', message: `places.${from} → ${to} is not an index scene` })
+      }
+      if (edge?.need && !/^(mobility)\s*(>=|>|<=|<|=)\s*-?\d+(?:\.\d+)?$/.test(edge.need.trim())) {
+        out.push({ code: 'BAD_PLACE', message: `places.${from} → ${to} need must be mobility>=N` })
+      }
+    }
+  }
   return out
 }
 
@@ -230,6 +246,7 @@ export function initialState(canon: Canon, seed: string): WorldState {
     present,
     characters,
     facts: { ...(opening?.facts ?? {}) },
+    clock: canon.meta.places ? { beat: 0 } : undefined,
   }
 }
 

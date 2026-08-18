@@ -72,6 +72,27 @@ test('jzdh-dingjiang commission spine: fact, contest, cost, retry', async () => 
   assert.ok((beforeRetry.state.characters['ding-songyan']?.cost ?? 0) >= 0)
 })
 
+test('dingjiang places allow temple to graveyard and block a hop with no edge', async () => {
+  const loaded = await loadPack(root)
+  const play = new HostRuntime({ canon: loaded.canon!, sessionId: 'jzdh-walk', seed: 'seed-jzdh' })
+  const walk = play.dispatch({
+    kind: 'tool',
+    name: 'check_propose',
+    args: { checkId: 'travel-on-foot', actors: { actor: 'ding-songyan' }, patch: { scene: 'jzdh.luanzanggang' } },
+  })
+  assert.equal(walk.ok, true, walk.text)
+  assert.equal(play.snapshot().state.scene, 'jzdh.luanzanggang')
+  assert.equal(play.snapshot().state.clock?.beat, 2)
+  const fly = play.dispatch({
+    kind: 'tool',
+    name: 'check_propose',
+    args: { checkId: 'travel-on-foot', actors: { actor: 'ding-songyan' }, patch: { scene: 'jzdh.yankjing' } },
+  })
+  assert.equal(fly.ok, false)
+  assert.match(fly.text, /TRAVEL_BLOCKED|no edge/)
+  assert.equal(play.snapshot().state.scene, 'jzdh.luanzanggang')
+})
+
 test('powang check uses insight and candle, not sequence', async () => {
   const loaded = await loadPack(root)
   const kernel = new WorldKernel(loaded.canon!)

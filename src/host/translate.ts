@@ -33,7 +33,12 @@ export function intentFromTool(name: string, args: Record<string, unknown>): Int
     case 'check_propose': {
       if (typeof args.checkId !== 'string' || !args.checkId) return { error: 'checkId required' }
       const actors = isStringRecord(args.actors) ? args.actors : {}
-      return { type: 'check', checkId: args.checkId, actors }
+      const extra = args.patch && typeof args.patch === 'object' && !Array.isArray(args.patch)
+        ? args.patch as Patch
+        : undefined
+      return extra
+        ? { type: 'check', checkId: args.checkId, actors, patch: extra }
+        : { type: 'check', checkId: args.checkId, actors }
     }
     case 'state_propose_fact':
       if (typeof args.pointer !== 'string' || !args.pointer) return { error: 'pointer required' }

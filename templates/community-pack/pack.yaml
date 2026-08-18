@@ -10,6 +10,7 @@ stats:
   grade: 0
   skill: 0
   cost: 0
+  mobility: 0
 tags:
   contest: [对抗, 交手, 动手, 战斗, 偷袭]
   cost: [代价, 反噬, 侵蚀, 入局]
@@ -18,3 +19,8 @@ opening:
   revealed: [axioms, commission]
   facts:
     commission: pending
+# Optional travel graph. Delete places: to keep the old "no spacetime" behaviour.
+# places:
+#   my.start:
+#     edges:
+#       my.next: { beats: 4, need: "mobility>=1" }

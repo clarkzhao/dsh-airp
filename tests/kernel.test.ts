@@ -106,6 +106,53 @@ test('idle look produces no events and leaves state equal', () => {
   assert.deepEqual(result.state, before)
 })
 
+function travelCheck(): CheckDef {
+  return {
+    id: 'travel',
+    kind: 'generic',
+    inputs: {},
+    formula: 'p = 1',
+    outcomes: { success: { apply: { scene: 'pack.b' } } },
+  }
+}
+
+test('pack without places still allows gm to rewrite scene', () => {
+  const k = kernel()
+  const result = k.turn(state(), { type: 'gm', patch: { scene: 'elsewhere' }, reason: 'test' })
+  assert.equal(result.ok, true)
+  if (!result.ok) return
+  assert.equal(result.state.scene, 'elsewhere')
+})
+
+test('places graph blocks a hop that needs mobility', () => {
+  const k = new WorldKernel(canon({
+    meta: {
+      id: 'graph-pack',
+      title: '图',
+      rng: 'none',
+      entry_scene: 'pack.a',
+      places: {
+        'pack.a': { edges: { 'pack.b': { beats: 4, need: 'mobility>=1' } } },
+        'pack.b': { edges: {} },
+      },
+    },
+    checks: { travel: travelCheck() },
+    index: { checks: ['travel'], characters: ['klein'], lore: ['axioms'] },
+  }))
+  const start = state({ scene: 'pack.a', present: ['klein'], characters: { klein: { mobility: 0 } } })
+  const blocked = k.turn(start, { type: 'check', checkId: 'travel', actors: { actor: 'klein' } })
+  assert.equal(blocked.ok, false)
+  if (blocked.ok) return
+  assert.equal(blocked.code, 'TRAVEL_BLOCKED')
+  assert.equal(blocked.state.scene, 'pack.a')
+  const ready = state({ scene: 'pack.a', present: ['klein'], characters: { klein: { mobility: 1 } }, clock: { beat: 0 } })
+  const ok = k.turn(ready, { type: 'check', checkId: 'travel', actors: { actor: 'klein' } })
+  assert.equal(ok.ok, true)
+  if (!ok.ok) return
+  assert.equal(ok.state.scene, 'pack.b')
+  assert.equal(ok.state.clock?.beat, 4)
+})
+
 test('fact targeting scene is CHANNEL_VIOLATION so oral teleport does not move you', () => {
   const k = kernel()
   const before = state()
