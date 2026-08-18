@@ -72,3 +72,17 @@ test('resolveIcActors prefers a named opponent over the second present ally', ()
   assert.equal(idle.attacker, 'ding-songyan')
   assert.equal(idle.defender, 'xu-changan')
 })
+
+test('custom traveler IC keeps wanderer as attacker even if Ding is in the roster', () => {
+  const cards = {
+    wanderer: { id: 'wanderer', name: '过路刀客', keys: ['过路刀客'] },
+    'ding-songyan': { id: 'ding-songyan', name: '丁松言', keys: ['丁二郎', '丁松言'] },
+    'xu-changan': { id: 'xu-changan', name: '许长安', keys: ['许长安'] },
+    'er-ren': { id: 'er-ren', name: '乱葬岗的蛾人', keys: ['蛾人'] },
+  }
+  const present = resolveIcActors('我跟蛾人动手', ['wanderer', 'xu-changan'], cards)
+  assert.equal(present.attacker, 'wanderer')
+  assert.equal(present.defender, 'er-ren')
+  const known = resolveIcActors('我跟蛾人动手', ['ding-songyan', 'xu-changan', 'er-ren', 'wanderer'], cards)
+  assert.equal(known.attacker, 'ding-songyan')
+})

@@ -471,8 +471,7 @@ export function apply(ctx: Context, config: Config): void {
     try {
       const rt = await loadRuntime(String(payload.agent.id))
       const snap = rt.snapshot()
-      const known = Object.keys(snap.state.characters)
-      const actors = resolveIcActors(text, known.length ? known : snap.state.present, rt.canon.characters)
+      const actors = resolveIcActors(text, snap.state.present, rt.canon.characters)
       const out = rt.dispatch({ kind: 'ic', tags, actors })
       if (out.forced && out.result.ok) {
         payload.agent.inject({

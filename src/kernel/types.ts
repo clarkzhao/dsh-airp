@@ -13,6 +13,7 @@ export const DEFAULT_GUARDED = [
   'characters.*.cost',
   'facts.last_contest',
   'facts.__check_ordinal',
+  'scene',
 ] as const
 
 export type Patch = Record<string, Json | string>

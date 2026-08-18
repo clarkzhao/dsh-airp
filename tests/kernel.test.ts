@@ -106,6 +106,16 @@ test('idle look produces no events and leaves state equal', () => {
   assert.deepEqual(result.state, before)
 })
 
+test('fact targeting scene is CHANNEL_VIOLATION so oral teleport does not move you', () => {
+  const k = kernel()
+  const before = state()
+  const result = k.turn(before, { type: 'fact', pointer: 'scene', value: 'elsewhere' })
+  assert.equal(result.ok, false)
+  if (result.ok) return
+  assert.equal(result.code, 'CHANNEL_VIOLATION')
+  assert.equal(result.state.scene, before.scene)
+})
+
 test('fact targeting lose_control is CHANNEL_VIOLATION and state unchanged', () => {
   const k = kernel()
   const before = state()

@@ -180,4 +180,16 @@ test('custom traveler shares Ding arrival night and does not steal his card', as
   assert.ok(state.characters['ding-songyan'])
   assert.ok(!state.present.includes('ding-songyan'))
   assert.match(rt.bootBrief(), /同一夜|借尸还魂/)
+  const moth = rt.dispatch({
+    kind: 'ic',
+    tags: ['contest'],
+    actors: { attacker: 'wanderer', defender: 'er-ren' },
+    u: 0.81,
+  })
+  assert.equal(moth.forced, true)
+  assert.equal(moth.result.ok, true)
+  if (moth.result.ok && moth.result.events[0]?.type === 'check') {
+    assert.equal(moth.result.events[0].actors.attacker, 'wanderer')
+  }
+  assert.ok(!rt.snapshot().state.present.includes('ding-songyan'))
 })

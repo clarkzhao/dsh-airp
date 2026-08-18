@@ -99,7 +99,9 @@ export class WorldKernel {
   }
 
   private writeFact(state: WorldState, kind: 'fact' | 'correct', pointer: string, value: Json): TurnResult {
-    const guarded = this.canon.guarded.length ? this.canon.guarded : DEFAULT_GUARDED
+    const guarded = this.canon.guarded.length
+      ? [...new Set([...DEFAULT_GUARDED, ...this.canon.guarded])]
+      : DEFAULT_GUARDED
     if (isGuarded(pointer, guarded)) {
       return fail(state, 'CHANNEL_VIOLATION', `${pointer} is a guarded numeric field`)
     }
