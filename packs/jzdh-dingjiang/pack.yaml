@@ -30,3 +30,5 @@ opening:
     commission: pending
     alarm: false
     play_mode: easy
+    watch: 日中
+    outside_gate: false
