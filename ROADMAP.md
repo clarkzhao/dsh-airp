@@ -39,11 +39,39 @@
 - [x] 开场 brief 按包装配场景 lore、委托、鉴定词，不再写死廷根
 - [x] scaffold 写出场景 lore；创造者 preset 挂 `worldbook-authoring` skill
 
+## 现在（v0.3）— 加深现有缝，不开假缝
+
+原则：`WorldKernel.turn/match` 与 `Pack.load/validate` 已经是深 module。下一步只往这两个 interface 后面加行为。不要为「设定集很长」再开 `present` / `canon.edit` / Worldsmith port——那是 engine.md §12 的 v1，且目前只有一个 adapter。
+
+1. **把定江设定集压回可玩 Canon**（`pack` / `demo`）
+   - `_extract.md` 是作者工作稿，不是运行时。拆进现有 `lore/*.md`（一条一概念、硬预算），索引只加本切片会取到的 key。
+   - 开局委托仍是「张睿失踪 → 乱葬岗蛾人」。卷二以后的梦劫、夺舍、魔种、潜蛟只进 [GM] 或未揭示 lore，不进 `opening.revealed`。
+   - 角色卡继续不写进度。季寒衣 / 覃观蝉 / 黄粱不进开局 `present`。
+   - DoD：`pack_validate` 过；`jzdh.test.ts` 脊柱仍是 fact → contest → cost → `/retry`。
+
+2. **加深 `Pack.validate`，而不是新工具**（`authoring`）
+   - 在现有诊断码上加：开局 `revealed` 总字数、lore 互指死链、check `when` 在 brief 里找不到、`_extract.md` 误进 index。
+   - 创造者八问保持 2×4；不要为「大荒全书」加第三屏。
+   - DoD：坏包只出 `PackDiagnostic`；测试仍打 `load/validate`，不打 fold。
+
+3. **加深 `WorldKernel.turn` 的可观察收据**（`engine`）
+   - 第一刀因果抽查：叙述声称晋升 / 定品 / 造窍，但本回合 `events` 无对应 check → 收据标 `UNCAUSED_CLAIM`，State 仍不变（不另开 module）。
+   - 定江需要的新鉴定（破妄已有）优先复用 `powang` / `cost`；不要为每种神功加一个 check 文件，除非公式真的不同。
+   - DoD：只断言 `TurnResult`；同一 seed 重放不变。
+
+欢迎的新 issue：
+
+- `demo`：定江可玩层与 `_extract.md` 不一致
+- `engine`：`UNCAUSED_CLAIM` 误报 / 漏报
+- `authoring`：validate 诊断看不懂
+
+仍不欢迎：社区包 PR 进 `packs/`、复刻 ST 扫描器、play 里加 `cordis_*`、把进度写进角色卡、为设定集单独做导入器。
+
 ## 以后（v1+，见 docs/engine.md §12）
 
-- Worldsmith：从一句话想法编译出 check / lore（仍要人审）
-- provisional 卡晋升进正式包
-- 因果抽查阻断（正文声称晋升但无事件）
+- Worldsmith：从一句话想法编译出 check / lore（仍要人审；第二种编译源出现再谈 port）
+- provisional 卡晋升进正式包（第二种作者出现再谈 `canon.edit`）
 - ST 资产语义迁移（不保证格式兼容）
+- 可选世界时钟 / `present` seam（第二种表现出现再开）
 
 明确不做：把 ST 请回宿主、SaaS 市场、生图引擎、在故事会话里热改 Cordis。
