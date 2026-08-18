@@ -86,8 +86,8 @@ test('scaffoldPack refuses official demo ids and chinese pack ids', async () => 
   const zh = await scaffoldPack({ id: '剑烛大荒', title: '剑烛' })
   assert.equal(zh.ok, false)
   assert.ok(zh.diagnostics.some((d) => /kebab-case/.test(d.message)))
-  assert.equal(isBundledDemoPath('/Users/clark/Workspace/dsh-airp/packs/JZDH-DINGJIANG'), true)
-  assert.equal(isBundledDemoPath('/Users/clark/Workspace/dsh-airp/packs/jzdh-dingjiang/..'), true)
+  assert.equal(isBundledDemoPath('/tmp/dsh-airp/packs/JZDH-DINGJIANG'), true)
+  assert.equal(isBundledDemoPath('/tmp/dsh-airp/packs/jzdh-dingjiang/..'), true)
 })
 
 test('scaffoldPack writes interview facts and hard cost', async () => {

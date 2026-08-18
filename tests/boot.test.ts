@@ -83,10 +83,10 @@ test('typed path on the first card wins even if a bundled option is also listed'
 
 test('selected absolute path without custom field still counts as custom', () => {
   const choice = resolveBootChoice({
-    answers: [{ id: 'boot_pack', selected: ['/Users/clark/Worlds/mine'] }],
+    answers: [{ id: 'boot_pack', selected: ['/tmp/worlds/mine'] }],
   })
-  assert.deepEqual(choice, { kind: 'custom', path: '/Users/clark/Worlds/mine' })
-  assert.equal(looksLikePackPath('/Users/clark/Worlds/mine'), true)
+  assert.deepEqual(choice, { kind: 'custom', path: '/tmp/worlds/mine' })
+  assert.equal(looksLikePackPath('/tmp/worlds/mine'), true)
 })
 
 test('boot card lists dingjiang demo and author can pick new pack', () => {

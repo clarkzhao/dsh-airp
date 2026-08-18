@@ -49,9 +49,9 @@ npm run build
 ## 安装到 DSH web profile
 
 ```bash
-dsh plugin --profile web add /Users/clark/Workspace/dsh-airp
+dsh plugin --profile web add /path/to/dsh-airp
 # 或
-npx @deepseek-ai/dsh plugin --profile web add /Users/clark/Workspace/dsh-airp
+npx @deepseek-ai/dsh plugin --profile web add /path/to/dsh-airp
 ```
 
 预设（从本仓复制，不要带 `tool-cordis`，也不要在 play preset 里挂 `play-mask`：`tools.restrict` 在挂载时全局工具表还是空的，New Session 会失败）：
