@@ -63,6 +63,45 @@ DoD：用 **scaffold 出来的新包**（不是定江）走完「接委托 → �
 
 DoD：空会话走完八问，产出的包能被消费者开局卡选中；`pack_validate` 的 error 作者不用读源码也能改。
 
+## 世界约束（引擎层，不是某个 demo）
+
+类 DnD 本子的爽感是：**前期时空有硬边界，后期用鉴定把边界拆掉**。这必须进 `WorldKernel`，否则每个生产者会用 lore 散文各写一套，模型一回合日行千里。
+
+ST 对照（只借语义，不借实现）：
+
+| ST 实际做了什么 | 不是什么 | AIRP 借什么 |
+|---|---|---|
+| `WorldInfoTimedEffects`：sticky / cooldown / delay 按**聊天条数**计（`world-info.js` ~479–650, 4633） | 不是世界钟、不是日历、不是地图 | `State.clock.beat` = 已结算转移次数（已有 `turn` / `__check_ordinal`） |
+| `{{setvar}}` 无类型、无事务（`variables.js` 240–249） | 不是位置、不是行动点 | 数值只经 check/gm。**不**借宏 |
+| 世界书条目用关键词决定「现在该不该出现」 | 不是旅行规则 | 地点用 `index.scenes` + lore key，不用扫描器 |
+
+明确不借：31 字段、sticky 条目、宏写变量、像素距离、寻路。
+
+极简接口（仍是 `turn` / `match`，不新开 module）：
+
+```text
+State
+  scene: "pack.a"
+  clock: { beat, day? }          # beat 每成功转移 +1
+  characters.pc.mobility: 0      # 0 步行 … 包自定义上限
+
+Canon.pack.yaml
+  places:
+    pack.a: { edges: { pack.b: { beats: 4, need: "mobility>=1" } } }
+```
+
+- `fact` 写 `scene` 若跨边且不满足 `beats` / `need` → `CHANNEL_VIOLATION`，State 不变。
+- 合法换场：`turn(check: travel)` 扣 beats、改 `scene`、可选改 `present`。
+- 解锁：普通 check 成功把 `mobility` +1（轻功、载具、飞车都是同一个数字）。后期 `need` 消失 = 约束被玩掉。
+- 没有 `places` 的包行为与现在相同（廷根夹具零改动）。
+- 生产者八问不为此加第三屏；scaffold 可写一张两节点示例图，作者删掉即无约束。
+
+DoD：夹具用 **模板包变体**（A→B 要 4 beat、mobility=0 被拒；mobility≥1 一次 check 到达）。不要用定江地图当回归。
+
+消费者：brief 带「现在在哪、今天还能走多远」；模型口头瞬移无事件则地点不变。
+
+生产者：只填边的 `beats` / `need`，不必写旅行引擎。`validate` 检查边指向已有 scene lore。
+
 ## 夹具（demo，非主线）
 
 `lotm-tingen` / `jzdh-dingjiang` 只负责：
