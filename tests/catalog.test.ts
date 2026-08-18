@@ -44,6 +44,7 @@ test('jzdh-dingjiang loads with pack-declared stats and moth/candle fields', asy
   assert.ok(loaded.canon!.lore['jzdh-commission'])
   assert.ok(loaded.canon!.lore['jzdh-dangkang'])
   assert.ok(loaded.canon!.lore['jzdh-luanzanggang'])
+  assert.ok(!loaded.canon!.lore['_extract'])
   assert.ok(!loaded.diagnostics.some((d) => d.code === 'MISSING_SCENE'))
 })
 

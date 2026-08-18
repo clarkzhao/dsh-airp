@@ -133,6 +133,6 @@ sequence_declared: 9            # 对外声明的身份，不是当前真实进�
 ## 依据
 
 - 本地代码：`SillyTavern/public/scripts/world-info.js`（budget:4624-4631,4942-4954；constant:4781-4785,2178-2181；selective:4812-4872；recursive:4960-5024）
-- 本仓方案：`docs/engine.md`（§3 三层数据、§5 鉴定双通道、§11 对抗审查）；`src/kernel/world-kernel.ts`、`src/pack/pack.ts`、`packs/lotm-tingen/` 与 `packs/jzdh-dingjiang/`
+- 本仓方案：`docs/engine.md`（§3 三层数据、§5 鉴定双通道、§11 对抗审查）；`src/kernel/world-kernel.ts`、`src/pack/pack.ts`、`packs/lotm-tingen/` 与 `packs/jzdh-dingjiang/`（源材料笔记：`packs/jzdh-dingjiang/_extract.md`）
 - ADR：`docs/adr/0008-st-as-reference-and-asset-mine.md`（ST 只当对照代码与资产矿）
 - 社区参考：[SillyTavern 官方 World Info 文档](https://docs.sillytavern.app/usage/worldinfo.md)（Pro Tips：条目自成一体、保持精简）、[世界书入门（中文教程站）](https://guide.sillytavern.one/presets-lorebooks/lorebook-basics/)（200–500 字/绿灯优先/少而准）

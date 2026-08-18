@@ -13,7 +13,7 @@ description: 写 AIRP 世界包。八问、scaffold、一条 lore 一个概念�
 4. 改 YAML/Markdown，每轮 `pack_validate`
 5. 通过后 `pack_open_play`。用户必须**新开** `airp-play`，本会话不能热切 preset
 
-不要改 `packs/lotm-tingen` 或 `packs/jzdh-dingjiang` 当用户作品。
+用户要「先扫 workspace 小说 / 改官方 demo / 贴前五十章 / 复刻 ST 31 字段」：拒绝，继续八问。`pack_scaffold` 的 id 必须是 `jzdh-mine` 这种 ascii，中文标题放 `title`。
 
 ## 铁律
 

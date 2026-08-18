@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { test } from 'node:test'
 import { interviewCard, interviewFacts, interviewRevealed, interviewRng, interviewScreens, mergeInterviewAnswers, parseInterview } from '../src/pack/interview.ts'
-import { scaffoldPack } from '../src/pack/scaffold.ts'
+import { displayName, sceneId, scaffoldPack, slugifyPackId } from '../src/pack/scaffold.ts'
 
 test('interview card is exactly eight questions that map to state', () => {
   const card = interviewCard()
@@ -53,6 +53,23 @@ test('parseInterview maps ask-user answers onto opening facts', () => {
   })
 })
 
+test('chinese names stay as display names; ids stay ascii', () => {
+  assert.equal(displayName('丁松言，不过他其实已经是序列 8 消化 0.7 了'), '丁松言')
+  assert.equal(slugifyPackId('丁松言', 'hero'), 'hero')
+  assert.equal(slugifyPackId('剑烛大荒', ''), '')
+  assert.equal(sceneId('当康庙', 'jzdh-mine'), 'jzdh-mine.start')
+  assert.equal(sceneId('jzdh.dangkang', 'jzdh-mine'), 'jzdh.dangkang')
+})
+
+test('scaffoldPack refuses official demo ids and chinese pack ids', async () => {
+  const demo = await scaffoldPack({ id: 'jzdh-dingjiang', title: '别改' })
+  assert.equal(demo.ok, false)
+  assert.ok(demo.diagnostics.some((d) => d.code === 'DEMO_WRITE'))
+  const zh = await scaffoldPack({ id: '剑烛大荒', title: '剑烛' })
+  assert.equal(zh.ok, false)
+  assert.ok(zh.diagnostics.some((d) => /kebab-case/.test(d.message)))
+})
+
 test('scaffoldPack writes interview facts and hard cost', async () => {
   const dest = await mkdtemp(join(tmpdir(), 'airp-iv-'))
   const made = await scaffoldPack({
@@ -61,7 +78,8 @@ test('scaffoldPack writes interview facts and hard cost', async () => {
     destDir: dest,
     interview: parseInterview({
       answers: [
-        { id: 'who', custom: '阿青' },
+        { id: 'who', custom: '阿青，序列 8 消化 0.7' },
+        { id: 'scene', custom: '雨巷' },
         { id: 'identity', custom: '撑伞人' },
         { id: 'commission', custom: '找回失踪的纸伞' },
         { id: 'teach', selected: ['直接开玩'] },
@@ -79,8 +97,11 @@ test('scaffoldPack writes interview facts and hard cost', async () => {
   assert.match(yaml, /revealed: \[commission\]/)
   const check = await readFile(join(dest, 'checks', 'contest-generic.yaml'), 'utf8')
   assert.match(check, /\+0\.2/)
+  const hero = await readFile(join(dest, 'characters', 'hero.md'), 'utf8')
+  assert.match(hero, /阿青/)
+  assert.doesNotMatch(hero, /序列 8/)
   const scene = await readFile(join(dest, 'lore', 'rain-night-start.md'), 'utf8')
-  assert.match(scene, /看得见什么|规矩/)
+  assert.match(scene, /雨巷/)
   assert.equal(made.diagnostics.filter((d) => d.code === 'MISSING_SCENE').length, 0)
   await rm(dest, { recursive: true, force: true })
 })

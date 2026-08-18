@@ -31,10 +31,10 @@ const TONE_FAST = '快节奏'
 
 export function interviewQuestions(): InterviewQuestion[] {
   return [
-    { id: 'who', header: '扮演谁', question: '你想扮演谁？写名字或称呼。' },
+    { id: 'who', header: '扮演谁', question: '你想扮演谁？只写名字或称呼，不要写序列/消化/品级。' },
     { id: 'identity', header: '对外身份', question: '这个角色此刻对外怎么自称？不要写进度数字。' },
-    { id: 'scene', header: '开场地点', question: '从哪个地点/场景开始？' },
-    { id: 'commission', header: '委托', question: '开局委托或目标是什么？一句说清谁委托、要查什么。' },
+    { id: 'scene', header: '开场地点', question: '从哪个地点开始？一个地点即可。可用中文，引擎会收成 scene id。' },
+    { id: 'commission', header: '委托', question: '开局委托一句话：谁委托、要查什么。不要贴小说章节。' },
     {
       id: 'teach',
       header: '开场阅读',

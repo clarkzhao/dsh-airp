@@ -266,7 +266,7 @@ export function apply(ctx: Context, config: Config): void {
 
     tools.register(defineTool({
       name: 'pack_interview',
-      description: 'Return authoring questions. screen=1|2 is one ask_user_question page of 4; omit for all 8 plus screens[]. Author preset only.',
+      description: 'Return authoring questions. screen=1|2 is one ask_user_question page of 4. Do not rewrite questions. Do not scan the workspace for novels first.',
       parameters: { screen: { type: 'number', description: '1 = who/identity/scene/commission; 2 = teach/tier/tone/banned' } },
       output: jsonOut,
       execute: async (args) => {
@@ -280,9 +280,9 @@ export function apply(ctx: Context, config: Config): void {
 
     tools.register(defineTool({
       name: 'pack_scaffold',
-      description: 'Write a new world-pack skeleton under ~/.dsh/airp-packs/<id>/ (or destDir). Author preset only. Pass pack_interview answers when you have them.',
+      description: 'Write a NEW pack under ~/.dsh/airp-packs/<id>/. id must be kebab-case ascii. Never destDir into packs/lotm-tingen or packs/jzdh-dingjiang. Do not paste a novel into commission.',
       parameters: {
-        id: { type: 'string', required: true, description: 'kebab-case pack id' },
+        id: { type: 'string', required: true, description: 'kebab-case ascii id, e.g. jzdh-mine — not 剑烛大荒' },
         title: { type: 'string', required: true, description: 'human title' },
         protagonistId: { type: 'string', description: 'opening character id' },
         protagonistName: { type: 'string', description: 'opening character display name' },

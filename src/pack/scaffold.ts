@@ -25,10 +25,31 @@ export interface ScaffoldResult {
 }
 
 const ID_RE = /^[a-z][a-z0-9-]{1,40}$/
+const BUNDLED_DEMO_IDS = new Set(['lotm-tingen', 'jzdh-dingjiang'])
+const PROGRESS_IN_NAME = /序列\s*\d|消化\s*[0-9.]|失控\s*[0-9.]|grade\s*[:=]|sequence\s*[:=]/
 
-export function slugifyPackId(raw: string): string {
+export function slugifyPackId(raw: string, fallback = 'new-pack'): string {
   const slug = raw.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')
-  return slug || 'new-pack'
+  return slug || fallback
+}
+
+export function displayName(raw?: string, fallback = 'hero'): string {
+  if (!raw) return fallback
+  const cut = raw.split(/[，,。；;]/)[0]?.trim() ?? raw.trim()
+  const cleaned = cut.replace(PROGRESS_IN_NAME, '').trim()
+  return cleaned || fallback
+}
+
+export function sceneId(raw: string | undefined, packId: string): string {
+  const text = raw?.trim()
+  if (!text) return `${packId}.start`
+  if (/^[a-z][a-z0-9.-]*$/i.test(text)) return text
+  return `${packId}.start`
+}
+
+export function isBundledDemoPath(dir: string): boolean {
+  const normalized = dir.replace(/\\/g, '/')
+  return [...BUNDLED_DEMO_IDS].some((id) => normalized.endsWith(`/packs/${id}`) || normalized.endsWith(`/packs/${id}/`))
 }
 
 function yamlScalar(value: string): string {
@@ -41,9 +62,12 @@ export function scaffoldFiles(spec: ScaffoldSpec): Record<string, string> {
   const title = spec.title.trim() || id
   const locale = spec.locale ?? 'zh-CN'
   const interview = spec.interview ?? {}
-  const scene = spec.entry_scene?.trim() || interview.scene?.trim() || `${id}.start`
-  const heroId = slugifyPackId(spec.protagonistId || interview.who || 'hero')
-  const heroName = spec.protagonistName?.trim() || interview.who?.trim() || heroId
+  const heroName = displayName(spec.protagonistName || interview.who, 'hero')
+  const heroId = spec.protagonistId
+    ? slugifyPackId(spec.protagonistId, 'hero')
+    : slugifyPackId(heroName, 'hero')
+  const scene = sceneId(spec.entry_scene || interview.scene, id)
+  const sceneLabel = spec.entry_scene?.trim() || interview.scene?.trim() || scene
   const axioms = (spec.axioms ?? []).map((line) => line.trim()).filter(Boolean)
   const facts = interviewFacts(interview)
   const revealed = interviewRevealed(interview)
@@ -52,7 +76,10 @@ export function scaffoldFiles(spec: ScaffoldSpec): Record<string, string> {
   const axiomBody = axioms.length
     ? axioms.map((line) => `- ${line.replace(/^[-*]\s*/, '')}`).join('\n')
     : '- 走路和闲聊不触发鉴定；只有关键冲突才鉴定。\n- 口头宣布胜负或晋升不会改变世界。'
-  const commission = spec.commission?.trim() || interview.commission?.trim() || '写清谁委托、要查什么、哪一步才鉴定。'
+  const commissionRaw = spec.commission?.trim() || interview.commission?.trim() || '写清谁委托、要查什么、哪一步才鉴定。'
+  const commission = commissionRaw.length > 800
+    ? `${commissionRaw.slice(0, 800).trim()}\n\n（委托过长，已截断。全书进不了单条 lore。）`
+    : commissionRaw
   const sceneKey = scene.replaceAll('.', '-')
   const factLines = Object.entries(facts).map(([k, v]) => `    ${k}: ${yamlScalar(v)}`)
 
@@ -129,10 +156,10 @@ export function scaffoldFiles(spec: ScaffoldSpec): Record<string, string> {
   ].join('\n')
 
   const sceneMd = [
-    `# ${scene}`,
+    `# ${sceneLabel}`,
     '',
     '看得见什么、有什么规矩、状态指针（facts.*）。走路闲聊不鉴定。',
-    interview.scene && interview.scene !== scene ? `开场地点：${interview.scene}` : '',
+    sceneLabel !== scene ? `开场地点：${sceneLabel}` : '',
     '',
   ].filter((line) => line !== undefined).join('\n')
 
@@ -178,16 +205,35 @@ export function resolveScaffoldDir(spec: ScaffoldSpec): string {
 }
 
 export async function scaffoldPack(spec: ScaffoldSpec): Promise<ScaffoldResult> {
-  const id = slugifyPackId(spec.id)
+  const id = slugifyPackId(spec.id, '')
   if (!ID_RE.test(id)) {
     return {
       ok: false,
       dir: '',
       files: [],
-      diagnostics: [{ code: 'BAD_YAML', message: `pack id must match ${ID_RE}: ${spec.id}` }],
+      diagnostics: [{
+        code: 'BAD_YAML',
+        message: `pack id must be kebab-case ascii like rain-night or jzdh-mine, got "${spec.id}"`,
+      }],
+    }
+  }
+  if (BUNDLED_DEMO_IDS.has(id)) {
+    return {
+      ok: false,
+      dir: '',
+      files: [],
+      diagnostics: [{ code: 'DEMO_WRITE', message: `${id} is an official demo. Use a new id under ~/.dsh/airp-packs/` }],
     }
   }
   const dir = resolveScaffoldDir({ ...spec, id })
+  if (isBundledDemoPath(dir)) {
+    return {
+      ok: false,
+      dir,
+      files: [],
+      diagnostics: [{ code: 'DEMO_WRITE', message: `refusing to overwrite official demo at ${dir}` }],
+    }
+  }
   const files = scaffoldFiles({ ...spec, id })
   await mkdir(join(dir, 'checks'), { recursive: true })
   await mkdir(join(dir, 'characters'), { recursive: true })
