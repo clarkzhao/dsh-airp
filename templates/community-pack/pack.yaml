@@ -1,0 +1,20 @@
+id: my-pack
+title: 我的世界包
+locale: zh-CN
+rng: bernoulli
+entry_scene: my.start
+loreBudgetChars: 4000
+description: 从 templates/community-pack 复制而来。改 id 和 title。
+license: CC-BY-SA-4.0
+stats:
+  grade: 0
+  skill: 0
+  cost: 0
+tags:
+  contest: [对抗, 交手, 动手, 战斗, 偷袭]
+  cost: [代价, 反噬, 侵蚀, 入局]
+opening:
+  present: [hero]
+  revealed: [axioms, commission]
+  facts:
+    commission: pending

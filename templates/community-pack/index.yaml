@@ -1,0 +1,9 @@
+checks:
+  - contest-generic
+characters:
+  - hero
+lore:
+  - axioms
+  - commission
+scenes:
+  - my.start

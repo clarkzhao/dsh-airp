@@ -6,7 +6,9 @@ test('play mask does not include pack_validate', () => {
   assert.deepEqual([...toolsFor('play')], ['lore_get', 'state_read', 'check_match', 'check_propose', 'state_propose_fact'])
   assert.ok(toolsFor('author').includes('pack_validate'))
   assert.ok(toolsFor('author').includes('pack_scaffold'))
+  assert.ok(toolsFor('author').includes('pack_open_play'))
   assert.ok(!toolsFor('play').includes('pack_scaffold'))
+  assert.ok(!toolsFor('play').includes('pack_open_play'))
 })
 
 test('tool names translate to kernel intents', () => {

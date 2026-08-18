@@ -1,0 +1,19 @@
+id: contest-generic
+when: 双方直接对抗
+kind: contest
+condition:
+  tag: contest
+inputs:
+  atk: characters.{attacker}.grade
+  def: characters.{defender}.grade
+formula: |
+  strength = def - atk
+  p = sigmoid(-strength / 1.5)
+outcomes:
+  success:
+    apply:
+      facts.last_contest: attacker
+  failure:
+    apply:
+      facts.last_contest: defender
+      characters.{attacker}.cost: "+0.1"

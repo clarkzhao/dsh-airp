@@ -4,7 +4,7 @@ export type PlayRole = 'play' | 'author'
 
 // OpenAI-compatible APIs reject dotted function names (`^[a-zA-Z0-9_-]+$`).
 export const PLAY_TOOLS = ['lore_get', 'state_read', 'check_match', 'check_propose', 'state_propose_fact'] as const
-export const AUTHOR_EXTRA_TOOLS = ['pack_validate', 'pack_scaffold'] as const
+export const AUTHOR_EXTRA_TOOLS = ['pack_validate', 'pack_scaffold', 'pack_open_play'] as const
 
 export function toolsFor(role: PlayRole): readonly string[] {
   return role === 'author' ? [...PLAY_TOOLS, ...AUTHOR_EXTRA_TOOLS] : PLAY_TOOLS

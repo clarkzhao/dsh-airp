@@ -9,6 +9,7 @@ import { HostRuntime } from './host/runtime.ts'
 import { bootQuestionFromRefs, isAskCancelled, isAuthorPreset, isPlayPreset, openRuntime, pathQuestion, PICK_NEW_PACK, presetFromSession, resolveBootChoice, resolvePathAnswer, sessionIsBlank, shouldBootStory } from './host/boot.ts'
 import { expandUserPath, loadCatalog, matchTags, resolveIcActors, resolvePackDir, tagsFromMeta, userPacksDir, type PackRef } from './pack/catalog.ts'
 import { loadPack } from './pack/pack.ts'
+import { playHandoff } from './pack/handoff.ts'
 import { scaffoldPack } from './pack/scaffold.ts'
 
 function sessionKey(exec: { agent?: { session?: { id?: string }; id?: string } } | undefined): string {
@@ -112,9 +113,10 @@ export function apply(ctx: Context, config: Config): void {
     '你是 AIRP 创造者，不是消费者。',
     `用户世界包目录：${userPacksDir(extraUserDir)}`,
     '官方 demo（只读参考）：packs/lotm-tingen、packs/jzdh-dingjiang。不要改 demo 当用户作品。',
-    '流程：用 ask_user_question 按 docs/worldbook-authoring.md 的 8 问引导 → pack_scaffold 写骨架 → 改 YAML/Markdown → pack_validate。',
+    '流程：用 ask_user_question 按 docs/worldbook-authoring.md 的 8 问引导 → pack_scaffold 写骨架 → 改 YAML/Markdown → pack_validate → pack_open_play 交出消费者开局卡。',
     '一条 lore 一个概念。角色卡不写进度数字。数值只经 check / gm。',
     '试跑鉴定用同一套 check_propose。不要发明第二套规则引擎。',
+    '已有产出的会话不能热切 preset。pack_open_play 只给交接说明，用户必须新开 airp-play。',
   ].join('\n')
 
   const bootSession = async (agent: { id: string; inject: (msg: never) => void }) => {
@@ -288,6 +290,34 @@ export function apply(ctx: Context, config: Config): void {
           destDir: typeof args.destDir === 'string' ? args.destDir : undefined,
         })
         return result as unknown as Json
+      },
+    }))
+
+    tools.register(defineTool({
+      name: 'pack_open_play',
+      description: 'After pack_validate passes, produce the handoff card for a new airp-play session. Does not switch this session.',
+      parameters: { packId: { type: 'string', description: 'pack id or directory; defaults to the loaded pack' } },
+      output: jsonOut,
+      execute: async (args, exec) => {
+        const catalog = await catalogOf()
+        const packId = typeof args.packId === 'string' ? args.packId : undefined
+        const rt = packId ? undefined : await loadRuntime(sessionKey(exec))
+        const dir = packId
+          ? (packId.includes('/') || packId.includes('\\') || packId.startsWith('~')
+            ? expandUserPath(packId)
+            : await resolvePackDir({ catalog, packId }).catch(() => expandUserPath(packId)))
+          : (catalog.packs.find((pack) => pack.id === rt!.canon.meta.id)?.dir ?? rt!.canon.meta.id)
+        const loaded = packId ? await loadPack(dir) : { ok: true as const, canon: rt!.canon, diagnostics: (await import('./pack/pack.ts')).validatePack(rt!.canon) }
+        const handoff = playHandoff({
+          packId: loaded.canon?.meta.id ?? packId ?? '',
+          title: loaded.canon?.meta.title,
+          dir,
+          diagnostics: loaded.diagnostics,
+        })
+        return {
+          ...handoff,
+          diagnostics: handoff.diagnostics.map((d) => ({ code: d.code, message: d.message, severity: d.severity })),
+        }
       },
     }))
   }

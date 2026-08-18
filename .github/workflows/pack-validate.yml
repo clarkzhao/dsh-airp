@@ -1,0 +1,29 @@
+name: pack-validate
+
+on:
+  push:
+    paths:
+      - 'packs/**'
+      - 'templates/**'
+      - 'src/pack/**'
+      - 'src/cli/**'
+      - '.github/workflows/pack-validate.yml'
+  pull_request:
+    paths:
+      - 'packs/**'
+      - 'templates/**'
+      - 'src/pack/**'
+      - 'src/cli/**'
+
+jobs:
+  official-demos:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm ci
+      - run: npm run pack:validate -- packs/lotm-tingen
+      - run: npm run pack:validate -- packs/jzdh-dingjiang
+      - run: npm run pack:validate -- templates/community-pack
