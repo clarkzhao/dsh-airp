@@ -13,6 +13,7 @@ tags:
   lose_control: [失控, 污染, 低语]
 opening:
   present: [klein, dunn, opponent]
+  playable: [klein, dunn, leonard]
   revealed: [axioms, tingen]
   facts:
     weather: 雾

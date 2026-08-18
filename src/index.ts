@@ -6,9 +6,9 @@ import { defineTool } from '@deepseek-ai/dsh-tools'
 import type { Json } from './kernel/types.ts'
 import { receiptText } from './host/translate.ts'
 import { HostRuntime } from './host/runtime.ts'
-import { bootQuestionFromRefs, isAskCancelled, isAuthorPreset, isPlayPreset, openRuntime, pathQuestion, PICK_NEW_PACK, presetFromSession, resolveBootChoice, resolvePathAnswer, sessionIsBlank, shouldBootStory } from './host/boot.ts'
+import { bootQuestionFromRefs, isAskCancelled, isAuthorPreset, isPlayPreset, openRuntime, pathQuestion, PICK_NEW_PACK, presetFromSession, resolveBootChoice, resolvePathAnswer, resolveSeating, seatingQuestion, sessionIsBlank, shouldBootStory } from './host/boot.ts'
 import { expandUserPath, loadCatalog, matchTags, resolveIcActors, resolvePackDir, tagsFromMeta, userPacksDir, type PackRef } from './pack/catalog.ts'
-import { loadPack } from './pack/pack.ts'
+import { loadPack, playableCharacters, playableScenes } from './pack/pack.ts'
 import { playHandoff } from './pack/handoff.ts'
 import { interviewCard, interviewScreens, parseInterview } from './pack/interview.ts'
 import { scaffoldPack } from './pack/scaffold.ts'
@@ -111,6 +111,16 @@ export function apply(ctx: Context, config: Config): void {
     return choice
   }
 
+  const askSeating = async (agent: unknown, dir: string) => {
+    const questions = ctx.get('userQuestions')
+    if (!questions) return undefined
+    const loaded = await loadPack(dir)
+    if (!loaded.ok || !loaded.canon) return undefined
+    if (playableCharacters(loaded.canon).length + playableScenes(loaded.canon).length === 0) return undefined
+    const answer = await questions.ask({ questions: seatingQuestion(loaded.canon).questions, agent: agent as never })
+    return resolveSeating(answer, loaded.canon)
+  }
+
   const authorGuide = [
     '你是 AIRP 创造者，不是消费者。',
     `用户世界包目录：${userPacksDir(extraUserDir)}`,
@@ -141,14 +151,29 @@ export function apply(ctx: Context, config: Config): void {
     }
     for (let attempt = 0; attempt < 3; attempt += 1) {
       try {
+        const packChoice = choice.kind === 'new-pack'
+          ? { kind: 'bundled' as const, packId: config.defaultPack ?? 'lotm-tingen' }
+          : choice
+        const catalog = await catalogOf()
+        const dir = packChoice.kind === 'custom'
+          ? expandUserPath(packChoice.path)
+          : await resolvePackDir({ catalog, packId: packChoice.packId })
+        let seat
+        if (!author) {
+          try {
+            seat = await askSeating(agent, dir)
+          } catch (err) {
+            if (isAskCancelled(err)) return
+            throw err
+          }
+        }
         const created = await openRuntime({
           packsDir,
           userDir: extraUserDir,
           sessionId: key,
-          choice: choice.kind === 'new-pack'
-            ? { kind: 'bundled', packId: config.defaultPack ?? 'lotm-tingen' }
-            : choice,
+          choice: packChoice,
           role: author ? 'author' : 'play',
+          seat,
         })
         if (config.loreBudgetChars) created.canon.meta.loreBudgetChars = config.loreBudgetChars
         runtimes.set(key, created)

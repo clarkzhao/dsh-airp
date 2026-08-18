@@ -1,4 +1,5 @@
-import { loadPack } from '../pack/pack.ts'
+import type { OpeningSeat } from '../kernel/types.ts'
+import { loadPack, playableCharacters, playableScenes } from '../pack/pack.ts'
 import { expandUserPath, type PackRef } from '../pack/catalog.ts'
 import { HostRuntime } from './runtime.ts'
 
@@ -8,6 +9,8 @@ export const BUNDLED_TINGEN = '廷根切片 lotm-tingen（推荐）'
 export const BUNDLED_JZDH = '定江切片 jzdh-dingjiang'
 export const PICK_CUSTOM = '选择我的世界包目录…'
 export const PICK_NEW_PACK = '从零写一个新世界包…'
+export const PICK_DEFAULT_SEAT = '用包默认开场'
+export const PICK_WANDERER = '自拟路人（写名字）'
 
 export interface BootAsk {
   questions: Array<{
@@ -98,7 +101,7 @@ export function bootQuestionFromRefs(packs: PackRef[]): BootAsk {
   ]
   seen.add('lotm-tingen')
   if (packs.some((pack) => pack.id === 'jzdh-dingjiang')) {
-    options.push({ label: BUNDLED_JZDH, description: optionBlurb(packs.find((pack) => pack.id === 'jzdh-dingjiang'), '大荒定江府，当康庙接「失踪的老贼」。官方 demo。') })
+    options.push({ label: BUNDLED_JZDH, description: optionBlurb(packs.find((pack) => pack.id === 'jzdh-dingjiang'), '大荒时代切片。开局自选人物与地点。官方 demo。') })
     seen.add('jzdh-dingjiang')
   }
   for (const pack of packs) {
@@ -160,6 +163,70 @@ export async function listPackIds(packsDir: string): Promise<string[]> {
   return ids.length ? ids.sort() : ['lotm-tingen']
 }
 
+export function seatingQuestion(canon: import('../kernel/types.ts').Canon): BootAsk {
+  const pcs = playableCharacters(canon)
+  const scenes = playableScenes(canon)
+  const pcOptions = [
+    { label: PICK_DEFAULT_SEAT, description: '沿用 pack.yaml 的 opening.present 与 entry_scene。' },
+    ...pcs.map((id) => {
+      const card = canon.characters[id]
+      return { label: card?.name ? `${card.name} (${id})` : id, description: card?.body?.split('\n')[0]?.slice(0, 80) }
+    }),
+    { label: PICK_WANDERER, description: '下一格写名字。引擎建一张路人卡，不占用原著底牌。' },
+  ]
+  const sceneOptions = [
+    { label: PICK_DEFAULT_SEAT, description: `默认 ${canon.meta.entry_scene ?? 'start'}` },
+    ...scenes.map((id) => ({ label: id, description: `进入 ${id}` })),
+  ]
+  return {
+    questions: [
+      {
+        id: 'boot_pc',
+        header: '扮演谁',
+        question: '选一个在册人物，或自拟路人。不必是默认主角。',
+        options: pcOptions,
+      },
+      {
+        id: 'boot_scene',
+        header: '从哪开场',
+        question: '选一个已有场景 lore 的地点。',
+        options: sceneOptions,
+      },
+      {
+        id: 'boot_wanderer',
+        header: '路人名字',
+        question: '若上栏选了「自拟路人」，在此写称呼。否则可空。',
+      },
+    ],
+  }
+}
+
+export function resolveSeating(answer: BootAnswer, canon: import('../kernel/types.ts').Canon): OpeningSeat {
+  const pcHit = answer.answers.find((a) => a.id === 'boot_pc')
+  const sceneHit = answer.answers.find((a) => a.id === 'boot_scene')
+  const wanderer = answer.answers.find((a) => a.id === 'boot_wanderer')
+  const pcLabel = pcHit?.selected?.[0]?.trim()
+  const sceneLabel = sceneHit?.selected?.[0]?.trim()
+  const customName = wanderer?.custom?.trim() || (pcLabel === PICK_WANDERER ? wanderer?.selected?.[0]?.trim() : undefined)
+  const seat: OpeningSeat = {}
+  if (pcLabel && pcLabel !== PICK_DEFAULT_SEAT) {
+    if (pcLabel === PICK_WANDERER || customName) {
+      seat.customName = customName || '路人'
+    } else {
+      const pcs = playableCharacters(canon)
+      const hit = pcs.find((id) => {
+        const card = canon.characters[id]
+        return pcLabel === id || pcLabel === `${card?.name} (${id})` || pcLabel === card?.name
+      })
+      if (hit) seat.pc = hit
+    }
+  }
+  if (sceneLabel && sceneLabel !== PICK_DEFAULT_SEAT && playableScenes(canon).includes(sceneLabel)) {
+    seat.scene = sceneLabel
+  }
+  return seat
+}
+
 export async function openRuntime(opts: {
   packsDir: string
   sessionId: string
@@ -167,6 +234,7 @@ export async function openRuntime(opts: {
   seed?: string
   role?: 'play' | 'author'
   userDir?: string
+  seat?: OpeningSeat
 }): Promise<HostRuntime> {
   const { loadCatalog, resolvePackDir } = await import('../pack/catalog.ts')
   const catalog = await loadCatalog({ bundledDir: opts.packsDir, userDir: opts.userDir })
@@ -183,5 +251,6 @@ export async function openRuntime(opts: {
     sessionId: opts.sessionId,
     seed: opts.seed ?? `${packId}:${opts.sessionId}`,
     role: opts.role,
+    seat: opts.seat,
   })
 }

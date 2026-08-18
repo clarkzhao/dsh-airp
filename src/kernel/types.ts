@@ -65,8 +65,16 @@ export interface PackOpening {
   present?: string[]
   /** Characters instantiated in State but not on-stage at boot. */
   roster?: string[]
+  /** Who the player may sit as. Defaults to non-provisional cards. */
+  playable?: string[]
   revealed?: string[]
   facts?: WorldState['facts']
+}
+
+export interface OpeningSeat {
+  pc?: string
+  scene?: string
+  customName?: string
 }
 
 export interface PackMeta {

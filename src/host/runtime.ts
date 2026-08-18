@@ -1,6 +1,7 @@
 import type { Canon, Intent, StoryEvent, TurnOptions, TurnResult, WorldState } from '../kernel/types.ts'
 import { WorldKernel } from '../kernel/world-kernel.ts'
-import { initialState, isError, loreKeyCandidates, resolveLoreKey, validatePack, type PackDiagnostic } from '../pack/pack.ts'
+import { applySeating, initialState, isError, loreKeyCandidates, resolveLoreKey, validatePack, type PackDiagnostic } from '../pack/pack.ts'
+import type { OpeningSeat } from '../kernel/types.ts'
 import { tagsFromMeta } from '../pack/catalog.ts'
 import { intentFromCommand, intentFromTool, receiptText, toolsFor, type PlayRole } from './translate.ts'
 
@@ -34,10 +35,10 @@ export class HostRuntime {
   private id: string
   private readonly role: PlayRole
 
-  constructor(opts: { canon: Canon; sessionId: string; seed: string; role?: PlayRole }) {
+  constructor(opts: { canon: Canon; sessionId: string; seed: string; role?: PlayRole; seat?: OpeningSeat }) {
     this.canon = opts.canon
     this.kernel = new WorldKernel(opts.canon)
-    this.opening = initialState(opts.canon, opts.seed)
+    this.opening = applySeating(initialState(opts.canon, opts.seed), opts.canon, opts.seat)
     this.state = structuredClone(this.opening)
     this.log = []
     this.id = opts.sessionId
@@ -62,6 +63,7 @@ export class HostRuntime {
       `checks: ${this.canon.index.checks.join(', ')}`,
       `characters: ${this.canon.index.characters.join(', ')}`,
       `lore: ${this.canon.index.lore.join(', ')}`,
+      `pc: ${this.state.present[0] ?? '(none)'}`,
       'Numeric fields only change via check_propose or /gm. Walking is not a check.',
     ].join('\n')
   }

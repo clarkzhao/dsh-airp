@@ -1,7 +1,7 @@
 import { readdir, readFile } from 'node:fs/promises'
 import { basename, join } from 'node:path'
 import yaml from 'js-yaml'
-import { DEFAULT_GUARDED, type Canon, type CharacterCard, type CheckDef, type Json, type LoreDoc, type PackMeta, type Predicate, type WorldState } from '../kernel/types.ts'
+import { DEFAULT_GUARDED, type Canon, type CharacterCard, type CheckDef, type Json, type LoreDoc, type OpeningSeat, type PackMeta, type Predicate, type WorldState } from '../kernel/types.ts'
 
 export type PackDiagnosticCode =
   | 'MISSING_FILE'
@@ -215,7 +215,7 @@ export function initialState(canon: Canon, seed: string): WorldState {
   const opening = canon.meta.opening
   const present = opening?.present
     ?? canon.index.characters.filter((id) => canon.characters[id] && !canon.characters[id]!.provisional)
-  const roster = new Set([...present, ...(opening?.roster ?? [])])
+  const roster = new Set([...present, ...(opening?.roster ?? []), ...playableCharacters(canon)])
   const characters: WorldState['characters'] = {}
   for (const id of roster) {
     const card = canon.characters[id]
@@ -231,6 +231,47 @@ export function initialState(canon: Canon, seed: string): WorldState {
     characters,
     facts: { ...(opening?.facts ?? {}) },
   }
+}
+
+export const WANDERER_ID = 'wanderer'
+
+export function playableCharacters(canon: Canon): string[] {
+  const listed = canon.meta.opening?.playable
+  const ids = listed?.length
+    ? listed
+    : canon.index.characters.filter((id) => canon.characters[id] && !canon.characters[id]!.provisional)
+  return ids.filter((id) => canon.characters[id])
+}
+
+export function playableScenes(canon: Canon): string[] {
+  const scenes = canon.index.scenes?.length ? [...canon.index.scenes] : []
+  const entry = canon.meta.entry_scene
+  if (entry && !scenes.includes(entry)) scenes.unshift(entry)
+  return scenes.filter((scene) => sceneHasLore(scene, canon.lore))
+}
+
+export function applySeating(state: WorldState, canon: Canon, seat?: OpeningSeat): WorldState {
+  if (!seat) return state
+  const next = structuredClone(state)
+  if (seat.scene && playableScenes(canon).includes(seat.scene)) {
+    next.scene = seat.scene
+    const key = resolveLoreKey(loreKeyCandidates(seat.scene), canon.lore)
+    if (key && !next.revealed.includes(key)) next.revealed = [...next.revealed, key]
+  }
+  if (seat.customName?.trim()) {
+    const name = seat.customName.trim()
+    next.characters[WANDERER_ID] = {
+      ...defaultCharacterStats(canon),
+      display_name: name,
+    }
+    next.present = [WANDERER_ID, ...next.present.filter((id) => id !== WANDERER_ID)]
+    next.facts.pc_name = name
+    return next
+  }
+  if (seat.pc && next.characters[seat.pc]) {
+    next.present = [seat.pc, ...next.present.filter((id) => id !== seat.pc)]
+  }
+  return next
 }
 
 function validatePredicate(pred: Predicate, ctx: string): PackDiagnostic[] {

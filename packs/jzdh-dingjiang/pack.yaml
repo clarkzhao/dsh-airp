@@ -4,7 +4,7 @@ locale: zh-CN
 rng: bernoulli
 entry_scene: jzdh.dangkang
 loreBudgetChars: 4000
-description: 官方 demo。大荒定江府，当康庙接「失踪的老贼」。
+description: 官方 demo。大荒时代切片。开局可选人物与地点；默认当康庙说书人接「失踪的老贼」。
 license: CC-BY-SA-4.0
 attribution: 同人切片，非原文搬运。
 stats:
@@ -22,6 +22,7 @@ tags:
 opening:
   present: [ding-songyan, xu-changan]
   roster: [er-ren]
+  playable: [ding-songyan, xu-changan, ding-qingyan, zheng-zhuxi, ren-youyang, su-qingli]
   revealed: [axioms, jzdh-world, jzdh-dingjiang, jzdh-wushu, jzdh-commission]
   facts:
     season: 夏

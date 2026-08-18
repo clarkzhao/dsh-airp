@@ -54,6 +54,7 @@ lore/*.md                 # 设定条目，一个文件一个概念
 - 文件名 = 触发词，起名要和索引、正文一一对应（`tingen.md` ↔ `scenes: tingen.blackthorn`）。
 - 地点被 `present` 激活时，模型自己会取；不需要写「当玩家进入时」的触发条件——那是扫描器思维。
 - 开场在场只写此刻能说话的人。对抗对象放 `opening.roster`：进 State，但不站在开场。IC 点到名字才会拉上场。
+- `opening.playable` + `index.scenes` 是消费者开局卡的候选。默认 `present` / `entry_scene` 只是不选时的样例，不要把包绑死在一个主角身上。
 
 ### 2.3 机制（如 `fool-s9-s8.md`）
 

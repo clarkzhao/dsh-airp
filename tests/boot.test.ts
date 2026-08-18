@@ -2,7 +2,8 @@ import assert from 'node:assert/strict'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { test } from 'node:test'
-import { BUNDLED_JZDH, BUNDLED_TINGEN, PICK_CUSTOM, PICK_NEW_PACK, bootQuestion, bootQuestionFromRefs, isAskCancelled, looksLikePackPath, openRuntime, pathQuestion, presetFromSession, resolveBootChoice, resolvePathAnswer, sessionIsBlank, shouldBootStory } from '../src/host/boot.ts'
+import { BUNDLED_JZDH, BUNDLED_TINGEN, PICK_CUSTOM, PICK_DEFAULT_SEAT, PICK_NEW_PACK, PICK_WANDERER, bootQuestion, bootQuestionFromRefs, isAskCancelled, looksLikePackPath, openRuntime, pathQuestion, presetFromSession, resolveBootChoice, resolvePathAnswer, resolveSeating, seatingQuestion, sessionIsBlank, shouldBootStory } from '../src/host/boot.ts'
+import { loadPack } from '../src/pack/pack.ts'
 
 const packsDir = join(dirname(fileURLToPath(import.meta.url)), '..', 'packs')
 
@@ -121,4 +122,52 @@ test('pick-custom without a path asks again and does not fall back to tingen', (
     resolvePathAnswer({ answers: [{ id: 'boot_path', custom: '/tmp/other-pack' }] }),
     { kind: 'custom', path: '/tmp/other-pack' },
   )
+})
+
+test('dingjiang seating can start as Zheng at the zongmen, not Ding at the temple', async () => {
+  const loaded = await loadPack(join(packsDir, 'jzdh-dingjiang'))
+  assert.equal(loaded.ok, true)
+  const q = seatingQuestion(loaded.canon!)
+  const pcLabels = q.questions[0]!.options!.map((o) => o.label)
+  assert.ok(pcLabels.includes(PICK_DEFAULT_SEAT))
+  assert.ok(pcLabels.some((label) => label.includes('郑朱曦')))
+  assert.ok(pcLabels.includes(PICK_WANDERER))
+  const sceneLabels = q.questions[1]!.options!.map((o) => o.label)
+  assert.ok(sceneLabels.includes('jzdh.zongmen'))
+  const seat = resolveSeating({
+    answers: [
+      { id: 'boot_pc', selected: ['郑朱曦 (zheng-zhuxi)'] },
+      { id: 'boot_scene', selected: ['jzdh.zongmen'] },
+    ],
+  }, loaded.canon!)
+  const rt = await openRuntime({
+    packsDir,
+    sessionId: 'seat-zheng',
+    choice: { kind: 'bundled', packId: 'jzdh-dingjiang' },
+    seat,
+  })
+  assert.equal(rt.snapshot().state.present[0], 'zheng-zhuxi')
+  assert.equal(rt.snapshot().state.scene, 'jzdh.zongmen')
+  assert.match(rt.bootBrief(), /pc: zheng-zhuxi/)
+})
+
+test('wanderer seating builds a nameless card without stealing a roster id', async () => {
+  const loaded = await loadPack(join(packsDir, 'jzdh-dingjiang'))
+  const seat = resolveSeating({
+    answers: [
+      { id: 'boot_pc', selected: [PICK_WANDERER] },
+      { id: 'boot_scene', selected: ['jzdh.dangkang'] },
+      { id: 'boot_wanderer', custom: '过路刀客' },
+    ],
+  }, loaded.canon!)
+  const rt = await openRuntime({
+    packsDir,
+    sessionId: 'seat-wanderer',
+    choice: { kind: 'bundled', packId: 'jzdh-dingjiang' },
+    seat,
+  })
+  const state = rt.snapshot().state
+  assert.equal(state.present[0], 'wanderer')
+  assert.equal(state.facts.pc_name, '过路刀客')
+  assert.equal(state.characters.wanderer?.display_name, '过路刀客')
 })
