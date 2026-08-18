@@ -11,3 +11,4 @@ packs/*
 !packs/jzdh-dingjiang/
 !packs/jzdh-dingjiang/**
 !packs/README.md
+packs/jzdh-dingjiang/audit/

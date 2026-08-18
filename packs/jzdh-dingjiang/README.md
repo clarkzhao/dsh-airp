@@ -6,4 +6,4 @@
 - 委托：许长安之师、积年老贼张睿失踪
 - 节奏：接委托 → 调查（不鉴定）→ 乱葬岗对抗蛾人 → 入局代价 → `/retry`
 
-消费者开局选「定江切片 jzdh-dingjiang」。写法见仓库 `docs/worldbook-authoring.md`。设定集：`_extract.md`（非运行时）。按章审计：`audit/`。
+消费者开局选「定江切片 jzdh-dingjiang」。写法见仓库 `docs/worldbook-authoring.md`。设定集：`_extract.md`（非运行时）。
