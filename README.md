@@ -13,7 +13,7 @@ DeepSeek Harness 上的 AIRP 引擎：深 module `WorldKernel` + 浅 Host adapte
 - `WorldKernel.turn` / `match`：鉴定、叙事事实、GM、检索
 - `Pack.load` / `validate` / `catalog`：YAML 索引 + Markdown 细节；bundled + `~/.dsh/airp-packs` + 自定义路径
 - 官方 demo：`packs/lotm-tingen`（廷根）、`packs/jzdh-dingjiang`（定江）
-- 工具名必须匹配 `^[a-zA-Z0-9_-]+$`：`lore_get` / `state_read` / `check_propose` / `state_propose_fact` / `check_match` / `pack_validate` / `pack_scaffold` / `pack_open_play`
+- 工具名必须匹配 `^[a-zA-Z0-9_-]+$`：`lore_get` / `state_read` / `check_propose` / `state_propose_fact` / `check_match` / `pack_validate` / `pack_scaffold` / `pack_open_play` / `pack_interview`
 
 ## 世界包生态
 
@@ -27,7 +27,7 @@ packs/<your-id>/            # 本地实验；默认被 .gitignore
 任意/含 pack.yaml 的目录     # 开局卡底部粘贴路径
 ```
 
-消费者（`airp-play`）开局选包；创造者（`airp-author`）用 `ask_user_question` 八问 → `pack_scaffold` → 改文件 → `pack_validate` → `pack_open_play`。`pack_open_play` **不会**热切本会话：已有产出不能换 preset，交接卡只告诉你新开一条 `airp-play` 并粘贴路径。
+消费者（`airp-play`）开局选包；创造者（`airp-author`）用 `pack_interview` 取 8 问 → `ask_user_question` → `pack_scaffold` → 改文件 → `pack_validate` → `pack_open_play`。`pack_open_play` **不会**热切本会话：已有产出不能换 preset，交接卡只告诉你新开一条 `airp-play` 并粘贴路径。
 
 分享一个包：复制 `templates/community-pack/`，或把目录打成 zip / 开独立 git 仓。别人解压到 `~/.dsh/airp-packs/<id>/` 即可。本地校验：
 

@@ -1,6 +1,7 @@
 import { mkdir, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { expandUserPath, userPacksDir } from './catalog.ts'
+import { interviewFacts, interviewRevealed, interviewRng, type InterviewAnswers } from './interview.ts'
 import { loadPack, type PackDiagnostic } from './pack.ts'
 
 export interface ScaffoldSpec {
@@ -13,6 +14,7 @@ export interface ScaffoldSpec {
   commission?: string
   axioms?: string[]
   destDir?: string
+  interview?: InterviewAnswers
 }
 
 export interface ScaffoldResult {
@@ -29,24 +31,35 @@ export function slugifyPackId(raw: string): string {
   return slug || 'new-pack'
 }
 
+function yamlScalar(value: string): string {
+  if (/[:#\n'"{}[\],&*?|<>=!%@`]/.test(value) || value.includes(' ')) return JSON.stringify(value)
+  return value
+}
+
 export function scaffoldFiles(spec: ScaffoldSpec): Record<string, string> {
   const id = slugifyPackId(spec.id)
   const title = spec.title.trim() || id
   const locale = spec.locale ?? 'zh-CN'
-  const scene = spec.entry_scene?.trim() || `${id}.start`
-  const heroId = slugifyPackId(spec.protagonistId || 'hero')
-  const heroName = spec.protagonistName?.trim() || heroId
+  const interview = spec.interview ?? {}
+  const scene = spec.entry_scene?.trim() || interview.scene?.trim() || `${id}.start`
+  const heroId = slugifyPackId(spec.protagonistId || interview.who || 'hero')
+  const heroName = spec.protagonistName?.trim() || interview.who?.trim() || heroId
   const axioms = (spec.axioms ?? []).map((line) => line.trim()).filter(Boolean)
+  const facts = interviewFacts(interview)
+  const revealed = interviewRevealed(interview)
+  const rng = interviewRng(interview)
+  const hardCost = interview.tier === 'hard'
   const axiomBody = axioms.length
     ? axioms.map((line) => `- ${line.replace(/^[-*]\s*/, '')}`).join('\n')
     : '- 走路和闲聊不触发鉴定；只有关键冲突才鉴定。\n- 口头宣布胜负或晋升不会改变世界。'
-  const commission = spec.commission?.trim() || '写清谁委托、要查什么、哪一步才鉴定。'
+  const commission = spec.commission?.trim() || interview.commission?.trim() || '写清谁委托、要查什么、哪一步才鉴定。'
+  const factLines = Object.entries(facts).map(([k, v]) => `    ${k}: ${yamlScalar(v)}`)
 
   const packYaml = [
     `id: ${id}`,
     `title: ${title}`,
     `locale: ${locale}`,
-    'rng: bernoulli',
+    `rng: ${rng}`,
     `entry_scene: ${scene}`,
     'loreBudgetChars: 4000',
     'description: 由 AIRP 创造者脚手架生成。一条 lore 一个概念。',
@@ -60,9 +73,9 @@ export function scaffoldFiles(spec: ScaffoldSpec): Record<string, string> {
     '  cost: [代价, 反噬, 侵蚀, 入局]',
     'opening:',
     `  present: [${heroId}]`,
-    '  revealed: [axioms, commission]',
+    `  revealed: [${revealed.join(', ')}]`,
     '  facts:',
-    '    commission: pending',
+    ...factLines,
     '',
   ].join('\n')
 
@@ -98,7 +111,7 @@ export function scaffoldFiles(spec: ScaffoldSpec): Record<string, string> {
     '  failure:',
     '    apply:',
     '      facts.last_contest: defender',
-    '      characters.{attacker}.cost: "+0.1"',
+    `      characters.{attacker}.cost: "${hardCost ? '+0.2' : '+0.1'}"`,
     '',
   ].join('\n')
 

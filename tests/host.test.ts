@@ -7,8 +7,10 @@ test('play mask does not include pack_validate', () => {
   assert.ok(toolsFor('author').includes('pack_validate'))
   assert.ok(toolsFor('author').includes('pack_scaffold'))
   assert.ok(toolsFor('author').includes('pack_open_play'))
+  assert.ok(toolsFor('author').includes('pack_interview'))
   assert.ok(!toolsFor('play').includes('pack_scaffold'))
   assert.ok(!toolsFor('play').includes('pack_open_play'))
+  assert.ok(!toolsFor('play').includes('pack_interview'))
 })
 
 test('tool names translate to kernel intents', () => {

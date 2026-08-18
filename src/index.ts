@@ -10,6 +10,7 @@ import { bootQuestionFromRefs, isAskCancelled, isAuthorPreset, isPlayPreset, ope
 import { expandUserPath, loadCatalog, matchTags, resolveIcActors, resolvePackDir, tagsFromMeta, userPacksDir, type PackRef } from './pack/catalog.ts'
 import { loadPack } from './pack/pack.ts'
 import { playHandoff } from './pack/handoff.ts'
+import { interviewCard, parseInterview } from './pack/interview.ts'
 import { scaffoldPack } from './pack/scaffold.ts'
 
 function sessionKey(exec: { agent?: { session?: { id?: string }; id?: string } } | undefined): string {
@@ -113,7 +114,7 @@ export function apply(ctx: Context, config: Config): void {
     '你是 AIRP 创造者，不是消费者。',
     `用户世界包目录：${userPacksDir(extraUserDir)}`,
     '官方 demo（只读参考）：packs/lotm-tingen、packs/jzdh-dingjiang。不要改 demo 当用户作品。',
-    '流程：用 ask_user_question 按 docs/worldbook-authoring.md 的 8 问引导 → pack_scaffold 写骨架 → 改 YAML/Markdown → pack_validate → pack_open_play 交出消费者开局卡。',
+    '流程：pack_interview 取 8 问 → ask_user_question 原样问用户（可拆两屏）→ 答案交给 pack_scaffold → 改 YAML/Markdown → pack_validate → pack_open_play。',
     '一条 lore 一个概念。角色卡不写进度数字。数值只经 check / gm。',
     '试跑鉴定用同一套 check_propose。不要发明第二套规则引擎。',
     '已有产出的会话不能热切 preset。pack_open_play 只给交接说明，用户必须新开 airp-play。',
@@ -264,8 +265,16 @@ export function apply(ctx: Context, config: Config): void {
     }))
 
     tools.register(defineTool({
+      name: 'pack_interview',
+      description: 'Return the 8 authoring questions. Pass them to ask_user_question as-is (split into two screens of 4). Author preset only.',
+      parameters: {},
+      output: jsonOut,
+      execute: async () => interviewCard() as unknown as Json,
+    }))
+
+    tools.register(defineTool({
       name: 'pack_scaffold',
-      description: 'Write a new world-pack skeleton under ~/.dsh/airp-packs/<id>/ (or destDir). Author preset only. Ask the user first.',
+      description: 'Write a new world-pack skeleton under ~/.dsh/airp-packs/<id>/ (or destDir). Author preset only. Pass pack_interview answers when you have them.',
       parameters: {
         id: { type: 'string', required: true, description: 'kebab-case pack id' },
         title: { type: 'string', required: true, description: 'human title' },
@@ -275,10 +284,14 @@ export function apply(ctx: Context, config: Config): void {
         axioms: { type: 'array', items: { type: 'string' }, description: '4–8 immutable world rules' },
         entry_scene: { type: 'string', description: 'opening scene id' },
         destDir: { type: 'string', description: 'optional absolute directory; defaults to ~/.dsh/airp-packs/<id>' },
+        interview: { type: 'json', description: 'answers from pack_interview / ask_user_question' },
       },
       output: jsonOut,
       execute: async (args) => {
         const axioms = Array.isArray(args.axioms) ? args.axioms.map(String) : undefined
+        const interview = args.interview && typeof args.interview === 'object'
+          ? parseInterview(args.interview as { answers?: Array<{ id?: string; selected?: string[]; custom?: string }> })
+          : undefined
         const result = await scaffoldPack({
           id: String(args.id ?? ''),
           title: String(args.title ?? args.id ?? ''),
@@ -288,6 +301,7 @@ export function apply(ctx: Context, config: Config): void {
           axioms,
           entry_scene: typeof args.entry_scene === 'string' ? args.entry_scene : undefined,
           destDir: typeof args.destDir === 'string' ? args.destDir : undefined,
+          interview,
         })
         return result as unknown as Json
       },
@@ -421,6 +435,7 @@ export function apply(ctx: Context, config: Config): void {
 export { WorldKernel } from './kernel/world-kernel.ts'
 export { loadPack, validatePack, initialState, isError } from './pack/pack.ts'
 export { loadCatalog, matchTags, resolveIcActors, tagsFromMeta, userPacksDir } from './pack/catalog.ts'
+export { interviewCard, parseInterview } from './pack/interview.ts'
 export { intentFromTool, intentFromCommand, toolsFor } from './host/translate.ts'
 export { HostRuntime } from './host/runtime.ts'
 export { shouldBootStory, resolveBootChoice, resolvePathAnswer } from './host/boot.ts'

@@ -32,6 +32,8 @@
 - [x] 开场 `present` 与 `roster` 分离；IC 按名字选对手，不误伤在场盟友
 - [x] 创造者写完后 `pack_open_play` 交接卡（新开 airp-play，不热切本会话）
 - [x] 社区包模板 `templates/community-pack` + `npm run pack:validate` + GitHub Actions
+- [x] `pack_interview`：8 问是数据，不是 persona 记忆；答案驱动 scaffold
+- [x] 定江补场景 lore：当康庙 / 乱葬岗
 
 ## 以后（v1+，见 docs/engine.md §12）
 

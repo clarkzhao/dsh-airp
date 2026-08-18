@@ -30,6 +30,8 @@ lore:
   - jzdh-yinzhicao
   - jzdh-commission
   - jzdh-yangyan
+  - jzdh-dangkang
+  - jzdh-luanzanggang
 scenes:
   - jzdh.dangkang
   - jzdh.luanzanggang
