@@ -18,6 +18,7 @@ test('web profile lists dsh-airp bundle and presets exist', async () => {
   const skill = await readFile(join(homedir(), '.dsh/.agent-presets/airp-author/skills/worldbook-authoring/SKILL.md'), 'utf8')
   assert.match(play, /AIRP 消费者/)
   assert.match(author, /AIRP 创造者/)
+  assert.match(author, /两屏|scaffold|交接/)
   assert.match(authorComp, /tool-skill/)
   assert.match(skill, /pack_interview/)
 

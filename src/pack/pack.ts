@@ -18,6 +18,9 @@ export type PackDiagnosticCode =
   | 'OPENING_ABSENT'
   | 'MISSING_SCENE'
   | 'DEMO_WRITE'
+  | 'COMMISSION_TOO_LONG'
+  | 'MACRO_SPEAK'
+  | 'UNMAPPED_ANSWER'
 
 export interface PackDiagnostic {
   code: PackDiagnosticCode
@@ -97,7 +100,8 @@ export function isError(diag: PackDiagnostic): boolean {
   return (diag.severity ?? 'error') === 'error'
 }
 
-const PROGRESS_IN_CARD = /消化\s*[0-9.]|失控\s*[0-9.]|sequence\s*[:=]\s*\d|digest\s*[:=]|lose_control\s*[:=]|当前序列|当前品级|进度\s*[0-9.]/
+const PROGRESS_IN_CARD = /消化\s*[0-9.]|失控\s*[0-9.]|sequence["']?\s*[:=]\s*\d|digest["']?\s*[:=]|lose_control["']?\s*[:=]|当前序列|当前品级|进度\s*[0-9.]/
+const MACRO_SPEAK = /\{\{[a-zA-Z_]+|setvar|keysecondary|scanDepth|matchWholeWords/
 
 export function validatePack(canon: Canon): PackDiagnostic[] {
   const out: PackDiagnostic[] = []
@@ -140,11 +144,21 @@ export function validatePack(canon: Canon): PackDiagnostic[] {
     }
   }
   for (const card of Object.values(canon.characters)) {
-    if (PROGRESS_IN_CARD.test(card.body)) {
+    const statsBlob = card.stats ? JSON.stringify(card.stats) : ''
+    if (PROGRESS_IN_CARD.test(card.body) || PROGRESS_IN_CARD.test(statsBlob)) {
       out.push({
         code: 'PROGRESS_IN_CARD',
         severity: 'warning',
-        message: `character ${card.id} body looks like live progress; keep numbers in State`,
+        message: `character ${card.id} looks like live progress; keep numbers in State`,
+      })
+    }
+  }
+  for (const doc of Object.values(canon.lore)) {
+    if (MACRO_SPEAK.test(doc.body)) {
+      out.push({
+        code: 'MACRO_SPEAK',
+        severity: 'warning',
+        message: `lore ${doc.key} looks like ST macros / scanner fields; AIRP has no {{setvar}}`,
       })
     }
   }

@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { test } from 'node:test'
 import { interviewCard, interviewFacts, interviewRevealed, interviewRng, interviewScreens, mergeInterviewAnswers, parseInterview } from '../src/pack/interview.ts'
-import { displayName, sceneId, scaffoldPack, slugifyPackId } from '../src/pack/scaffold.ts'
+import { displayName, isBundledDemoPath, sceneId, scaffoldPack, slugifyPackId } from '../src/pack/scaffold.ts'
 
 test('interview card is exactly eight questions that map to state', () => {
   const card = interviewCard()
@@ -55,10 +55,28 @@ test('parseInterview maps ask-user answers onto opening facts', () => {
 
 test('chinese names stay as display names; ids stay ascii', () => {
   assert.equal(displayName('丁松言，不过他其实已经是序列 8 消化 0.7 了'), '丁松言')
+  assert.equal(displayName('丁松言不过序列8消化0.7'), '丁松言')
   assert.equal(slugifyPackId('丁松言', 'hero'), 'hero')
   assert.equal(slugifyPackId('剑烛大荒', ''), '')
   assert.equal(sceneId('当康庙', 'jzdh-mine'), 'jzdh-mine.start')
   assert.equal(sceneId('jzdh.dangkang', 'jzdh-mine'), 'jzdh.dangkang')
+})
+
+test('scaffoldPack rejects a novel-length commission instead of silently truncating', async () => {
+  const dest = await mkdtemp(join(tmpdir(), 'airp-long-'))
+  const made = await scaffoldPack({
+    id: 'too-long',
+    title: '过长',
+    destDir: dest,
+    commission: '章'.repeat(900),
+    interview: { unmapped: ['st-fields'] },
+  })
+  assert.equal(made.ok, false)
+  assert.ok(made.diagnostics.some((d) => d.code === 'COMMISSION_TOO_LONG'))
+  assert.ok(made.diagnostics.some((d) => d.code === 'UNMAPPED_ANSWER'))
+  const body = await readFile(join(dest, 'lore', 'commission.md'), 'utf8')
+  assert.doesNotMatch(body, /章{20}/)
+  await rm(dest, { recursive: true, force: true })
 })
 
 test('scaffoldPack refuses official demo ids and chinese pack ids', async () => {
@@ -68,6 +86,8 @@ test('scaffoldPack refuses official demo ids and chinese pack ids', async () => 
   const zh = await scaffoldPack({ id: '剑烛大荒', title: '剑烛' })
   assert.equal(zh.ok, false)
   assert.ok(zh.diagnostics.some((d) => /kebab-case/.test(d.message)))
+  assert.equal(isBundledDemoPath('/Users/clark/Workspace/dsh-airp/packs/JZDH-DINGJIANG'), true)
+  assert.equal(isBundledDemoPath('/Users/clark/Workspace/dsh-airp/packs/jzdh-dingjiang/..'), true)
 })
 
 test('scaffoldPack writes interview facts and hard cost', async () => {

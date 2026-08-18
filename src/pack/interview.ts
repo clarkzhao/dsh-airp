@@ -18,6 +18,7 @@ export interface InterviewAnswers {
   tier?: 'narrative' | 'default' | 'hard'
   tone?: string
   banned?: string
+  unmapped?: string[]
 }
 
 const TEACH_AXIOMS = '先读公理再开玩'
@@ -112,6 +113,9 @@ export function parseInterview(input: {
     }
     else if (id === 'tone') out.tone = text
     else if (id === 'banned') out.banned = text === '无' ? undefined : text
+    else {
+      out.unmapped = [...(out.unmapped ?? []), id]
+    }
   }
   return out
 }

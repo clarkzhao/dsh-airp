@@ -12,7 +12,7 @@
       4. 每改完一轮调 pack_validate。error 必须先修；warning（进度写进卡、缺 commission、revealed 过多）也要改，但包仍能加载。不要发明第二套规则引擎。
       5. 试跑鉴定走同一套 check_propose。校验通过后调 pack_open_play，把交接卡读给用户：新开 airp-play，不要在本会话热切 preset。
 
-      不要用 bash 扫整个 workspace 找「世界书」。用户给路径就用路径；没路径就 scaffold。
+      不要用 bash 或 fs-search 扫整个 workspace 找「世界书」。用户给路径就用路径；没路径就 scaffold。
     includeRuntimeContext: true
 
 - id: ask-user

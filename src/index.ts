@@ -39,6 +39,7 @@ export function apply(ctx: Context, config: Config): void {
   const packsDir = resolve(config.packsDir && config.packsDir !== 'packs' ? config.packsDir : bundledPacks)
   const extraUserDir = config.userPacksDir ? config.userPacksDir : undefined
   const runtimes = new Map<string, HostRuntime>()
+  const lastScaffold = new Map<string, string>()
 
   const catalogOf = () => loadCatalog({ bundledDir: packsDir, userDir: extraUserDir })
 
@@ -114,7 +115,8 @@ export function apply(ctx: Context, config: Config): void {
     '你是 AIRP 创造者，不是消费者。',
     `用户世界包目录：${userPacksDir(extraUserDir)}`,
     '官方 demo（只读参考）：packs/lotm-tingen、packs/jzdh-dingjiang。不要改 demo 当用户作品。',
-    '流程：pack_interview 取 8 问 → ask_user_question 原样问用户（可拆两屏）→ 答案交给 pack_scaffold → 改 YAML/Markdown → pack_validate → pack_open_play。',
+    '流程：pack_interview({screen:1}) 再 screen:2 → ask_user_question 原样问 → pack_scaffold（kebab-case id）→ pack_validate → pack_open_play。',
+    '用户要先扫小说、改官方 demo、贴全书、复刻 ST 31 字段：拒绝，继续八问。',
     '一条 lore 一个概念。角色卡不写进度数字。数值只经 check / gm。',
     '试跑鉴定用同一套 check_propose。不要发明第二套规则引擎。',
     '已有产出的会话不能热切 preset。pack_open_play 只给交接说明，用户必须新开 airp-play。',
@@ -293,7 +295,7 @@ export function apply(ctx: Context, config: Config): void {
         interview: { type: 'json', description: 'answers from pack_interview / ask_user_question' },
       },
       output: jsonOut,
-      execute: async (args) => {
+      execute: async (args, exec) => {
         const axioms = Array.isArray(args.axioms) ? args.axioms.map(String) : undefined
         const interview = args.interview && typeof args.interview === 'object'
           ? parseInterview(args.interview as { answers?: Array<{ id?: string; selected?: string[]; custom?: string }> })
@@ -309,6 +311,7 @@ export function apply(ctx: Context, config: Config): void {
           destDir: typeof args.destDir === 'string' ? args.destDir : undefined,
           interview,
         })
+        if (result.ok && result.dir) lastScaffold.set(sessionKey(exec), result.dir)
         return result as unknown as Json
       },
     }))
@@ -321,13 +324,28 @@ export function apply(ctx: Context, config: Config): void {
       execute: async (args, exec) => {
         const catalog = await catalogOf()
         const packId = typeof args.packId === 'string' ? args.packId : undefined
-        const rt = packId ? undefined : await loadRuntime(sessionKey(exec))
+        const scaffolded = lastScaffold.get(sessionKey(exec))
+        const cached = runtimes.get(sessionKey(exec))
+        if (!packId && !scaffolded && !cached) {
+          return {
+            ok: false,
+            packId: '',
+            title: '',
+            dir: '',
+            preset: 'airp-play',
+            how: ['请传入刚 scaffold 的 packId 或目录。从零写包时不要默认交接廷根。'],
+            diagnostics: [],
+          }
+        }
+        const rt = packId || scaffolded ? undefined : cached
         const dir = packId
           ? (packId.includes('/') || packId.includes('\\') || packId.startsWith('~')
             ? expandUserPath(packId)
             : await resolvePackDir({ catalog, packId }).catch(() => expandUserPath(packId)))
-          : (catalog.packs.find((pack) => pack.id === rt!.canon.meta.id)?.dir ?? rt!.canon.meta.id)
-        const loaded = packId ? await loadPack(dir) : { ok: true as const, canon: rt!.canon, diagnostics: (await import('./pack/pack.ts')).validatePack(rt!.canon) }
+          : (scaffolded ?? catalog.packs.find((pack) => pack.id === rt!.canon.meta.id)?.dir ?? rt!.canon.meta.id)
+        const loaded = packId || scaffolded
+          ? await loadPack(dir)
+          : { ok: true as const, canon: rt!.canon, diagnostics: (await import('./pack/pack.ts')).validatePack(rt!.canon) }
         const handoff = playHandoff({
           packId: loaded.canon?.meta.id ?? packId ?? '',
           title: loaded.canon?.meta.title,

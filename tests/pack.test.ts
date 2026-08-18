@@ -109,3 +109,19 @@ test('validatePack warns when an index scene has no lore file', () => {
   const diags = validatePack(canon)
   assert.ok(diags.some((d) => d.code === 'MISSING_SCENE' && d.severity === 'warning'))
 })
+
+test('validatePack warns on ST macros and progress hidden in stats', () => {
+  const canon = {
+    meta: { id: 't', title: 't' },
+    index: { checks: [], characters: ['klein'], lore: ['axioms'] },
+    checks: {},
+    characters: {
+      klein: { id: 'klein', name: '克莱恩', keys: [], body: '口吻。', stats: { digest: 0.7 } },
+    },
+    lore: { axioms: { key: 'axioms', body: '{{setvar::x::1}} 非凡特性不灭。' } },
+    guarded: [],
+  } satisfies Canon
+  const diags = validatePack(canon)
+  assert.ok(diags.some((d) => d.code === 'PROGRESS_IN_CARD'))
+  assert.ok(diags.some((d) => d.code === 'MACRO_SPEAK'))
+})

@@ -24,9 +24,11 @@ export interface ScaffoldResult {
   diagnostics: PackDiagnostic[]
 }
 
+const COMMISSION_MAX = 800
+
 const ID_RE = /^[a-z][a-z0-9-]{1,40}$/
 const BUNDLED_DEMO_IDS = new Set(['lotm-tingen', 'jzdh-dingjiang'])
-const PROGRESS_IN_NAME = /序列\s*\d|消化\s*[0-9.]|失控\s*[0-9.]|grade\s*[:=]|sequence\s*[:=]/
+const PROGRESS_IN_NAME = /序列\s*\d+|消化\s*[0-9.]+|失控\s*[0-9.]+|grade\s*[:=]\s*[0-9.]+|sequence\s*[:=]\s*\d+/g
 
 export function slugifyPackId(raw: string, fallback = 'new-pack'): string {
   const slug = raw.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')
@@ -36,8 +38,9 @@ export function slugifyPackId(raw: string, fallback = 'new-pack'): string {
 export function displayName(raw?: string, fallback = 'hero'): string {
   if (!raw) return fallback
   const cut = raw.split(/[，,。；;]/)[0]?.trim() ?? raw.trim()
-  const cleaned = cut.replace(PROGRESS_IN_NAME, '').trim()
-  return cleaned || fallback
+  const hit = cut.search(PROGRESS_IN_NAME)
+  const before = (hit >= 0 ? cut.slice(0, hit) : cut).replace(/[不过但是而且就]+$/u, '').trim()
+  return before || fallback
 }
 
 export function sceneId(raw: string | undefined, packId: string): string {
@@ -48,13 +51,36 @@ export function sceneId(raw: string | undefined, packId: string): string {
 }
 
 export function isBundledDemoPath(dir: string): boolean {
-  const normalized = dir.replace(/\\/g, '/')
-  return [...BUNDLED_DEMO_IDS].some((id) => normalized.endsWith(`/packs/${id}`) || normalized.endsWith(`/packs/${id}/`))
+  const normalized = expandUserPath(dir).replace(/\\/g, '/').replace(/\/+$/, '').toLowerCase()
+  if (normalized.endsWith('/packs') || /\/packs\/?$/.test(normalized)) return true
+  return [...BUNDLED_DEMO_IDS].some((id) => {
+    return normalized.endsWith(`/packs/${id}`) || normalized.split('/').includes(id)
+  })
 }
 
 function yamlScalar(value: string): string {
   if (/[:#\n'"{}[\],&*?|<>=!%@`]/.test(value) || value.includes(' ')) return JSON.stringify(value)
   return value
+}
+
+export function scaffoldNotes(spec: ScaffoldSpec): PackDiagnostic[] {
+  const interview = spec.interview ?? {}
+  const commissionRaw = spec.commission?.trim() || interview.commission?.trim() || ''
+  const notes: PackDiagnostic[] = []
+  if (commissionRaw.length > COMMISSION_MAX) {
+    notes.push({
+      code: 'COMMISSION_TOO_LONG',
+      message: `commission is ${commissionRaw.length} chars; write one job, not a novel`,
+    })
+  }
+  if (interview.unmapped?.length) {
+    notes.push({
+      code: 'UNMAPPED_ANSWER',
+      severity: 'warning',
+      message: `ignored interview ids: ${interview.unmapped.join(', ')}`,
+    })
+  }
+  return notes
 }
 
 export function scaffoldFiles(spec: ScaffoldSpec): Record<string, string> {
@@ -77,8 +103,9 @@ export function scaffoldFiles(spec: ScaffoldSpec): Record<string, string> {
     ? axioms.map((line) => `- ${line.replace(/^[-*]\s*/, '')}`).join('\n')
     : '- 走路和闲聊不触发鉴定；只有关键冲突才鉴定。\n- 口头宣布胜负或晋升不会改变世界。'
   const commissionRaw = spec.commission?.trim() || interview.commission?.trim() || '写清谁委托、要查什么、哪一步才鉴定。'
-  const commission = commissionRaw.length > 800
-    ? `${commissionRaw.slice(0, 800).trim()}\n\n（委托过长，已截断。全书进不了单条 lore。）`
+  const commissionTooLong = commissionRaw.length > COMMISSION_MAX
+  const commission = commissionTooLong
+    ? '写清谁委托、要查什么、哪一步才鉴定。不要贴全书。'
     : commissionRaw
   const sceneKey = scene.replaceAll('.', '-')
   const factLines = Object.entries(facts).map(([k, v]) => `    ${k}: ${yamlScalar(v)}`)
@@ -246,10 +273,12 @@ export async function scaffoldPack(spec: ScaffoldSpec): Promise<ScaffoldResult> 
     written.push(rel)
   }
   const loaded = await loadPack(dir)
+  const notes = scaffoldNotes({ ...spec, id })
+  const diagnostics = [...notes, ...loaded.diagnostics]
   return {
-    ok: loaded.ok,
+    ok: loaded.ok && !notes.some((d) => (d.severity ?? 'error') === 'error'),
     dir,
     files: written,
-    diagnostics: loaded.diagnostics,
+    diagnostics,
   }
 }
