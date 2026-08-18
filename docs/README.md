@@ -12,6 +12,6 @@
 | [adr/0010…](./adr/0010-three-layer-worldpack-and-event-sourced-state.md) | Canon / State / Session |
 | [adr/0011…](./adr/0011-check-engine-declarative-and-optional-conditions.md) | 声明式 check |
 
-世界包源材料笔记放在对应 pack 里（如 `packs/jzdh-dingjiang/_extract.md`），不进根目录 `docs/`。
+世界包设定集放在对应 pack 里（如 `packs/jzdh-dingjiang/_extract.md`），不进根目录 `docs/`。
 
 历史调研报告仍留在 `notes/tavern-ai-native/`，不再指导实现。

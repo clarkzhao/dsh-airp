@@ -5,7 +5,7 @@
 | 目录 | 谁维护 | 进 git 吗 |
 |---|---|---|
 | `packs/lotm-tingen` | 官方 demo | 是 |
-| `packs/jzdh-dingjiang` | 官方 demo | 是（源材料笔记在包内 `_extract.md`，不进 lore） |
+| `packs/jzdh-dingjiang` | 官方 demo | 是（设定集 `_extract.md`、按章审计 `audit/`，均不进 lore） |
 | `packs/<你的 id>` | 你 | 默认否（见根目录 `.gitignore`） |
 | `~/.dsh/airp-packs/<id>` | 你 | 永远不在本仓 |
 

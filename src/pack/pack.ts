@@ -254,7 +254,7 @@ async function listYaml(dir: string): Promise<string[]> {
 async function listMd(dir: string): Promise<string[]> {
   try {
     const names = await readdir(dir)
-    return names.filter((n) => n.endsWith('.md') && !n.startsWith('_')).map((n) => join(dir, n))
+    return names.filter((n) => n.endsWith('.md') && !n.startsWith('_') && n !== 'README.md').map((n) => join(dir, n))
   } catch {
     return []
   }
