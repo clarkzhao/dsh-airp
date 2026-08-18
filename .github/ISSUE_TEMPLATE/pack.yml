@@ -1,0 +1,26 @@
+name: 世界包
+description: demo 设定错误、条目超预算、委托不可玩
+title: '[pack] '
+labels: [pack]
+body:
+  - type: dropdown
+    id: which
+    attributes:
+      label: 哪个包
+      options:
+        - lotm-tingen
+        - jzdh-dingjiang
+        - 社区包（写路径或仓库，不要直接 PR 进 packs/）
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: 问题
+      description: 设定错误、lore 超预算、委托走不通、角色卡写了进度数字……
+    validations:
+      required: true
+  - type: input
+    id: key
+    attributes:
+      label: lore / check / 角色 id

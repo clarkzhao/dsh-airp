@@ -109,7 +109,7 @@ sequence_declared: 9            # 对外声明的身份，不是当前真实进�
 | 7 | 语气与叙事密度？（严肃 / 轻松 / 快节奏） | `facts.tone` 类指针 |
 | 8 | 有没有绝对不能出现的主题？ | `facts.banned` 类指针 |
 
-每个问题一句话能答。创造者不要自己编题：调 `pack_interview` 取这 8 问，`ask_user_question` 原样问，答案交给 `pack_scaffold`（写入 `opening.facts` / `revealed` / `rng`）。**不要写回角色卡**。`pack_validate` 通过后调 `pack_open_play`：它只给交接卡，用户必须**新开** `airp-play`。
+每个问题一句话能答。创造者不要自己编题：`pack_interview({screen:1})` 和 `pack_interview({screen:2})` 各问一屏，`ask_user_question` 原样用返回的 `questions`。两屏答案一起交给 `pack_scaffold`（写入 `opening.facts` / `revealed` / `rng`）。`index.scenes` 里的 `foo.bar` 要有 `lore/foo-bar.md`。**不要写回角色卡**。`pack_validate` 通过后调 `pack_open_play`：用户必须**新开** `airp-play`。
 
 ---
 

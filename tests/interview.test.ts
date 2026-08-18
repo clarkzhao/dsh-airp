@@ -3,13 +3,28 @@ import { mkdtemp, readFile, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { test } from 'node:test'
-import { interviewCard, interviewFacts, interviewRevealed, interviewRng, parseInterview } from '../src/pack/interview.ts'
+import { interviewCard, interviewFacts, interviewRevealed, interviewRng, interviewScreens, mergeInterviewAnswers, parseInterview } from '../src/pack/interview.ts'
 import { scaffoldPack } from '../src/pack/scaffold.ts'
 
 test('interview card is exactly eight questions that map to state', () => {
   const card = interviewCard()
   assert.equal(card.questions.length, 8)
   assert.deepEqual(card.questions.map((q) => q.id), ['who', 'identity', 'scene', 'commission', 'teach', 'tier', 'tone', 'banned'])
+  const [one, two] = interviewScreens()
+  assert.equal(one.questions.length, 4)
+  assert.equal(two.questions.length, 4)
+  assert.deepEqual(interviewCard(1).questions.map((q) => q.id), ['who', 'identity', 'scene', 'commission'])
+  assert.deepEqual(interviewCard(2).questions.map((q) => q.id), ['teach', 'tier', 'tone', 'banned'])
+})
+
+test('mergeInterviewAnswers concatenates two ask-user screens', () => {
+  const merged = mergeInterviewAnswers(
+    { answers: [{ id: 'who', custom: '阿青' }, { id: 'commission', custom: '找伞' }] },
+    { answers: [{ id: 'tier', selected: ['纯叙事（几乎不鉴定）'] }, { id: 'tone', selected: ['轻松'] }] },
+  )
+  assert.equal(merged.who, '阿青')
+  assert.equal(merged.tier, 'narrative')
+  assert.equal(interviewRng(merged), 'none')
 })
 
 test('parseInterview maps ask-user answers onto opening facts', () => {

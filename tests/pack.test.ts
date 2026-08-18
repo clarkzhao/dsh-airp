@@ -96,3 +96,16 @@ test('validatePack rejects lore over budget as a hard error', () => {
   const diags = validatePack(canon)
   assert.ok(diags.some((d) => d.code === 'LORE_BUDGET' && (d.severity ?? 'error') === 'error'))
 })
+
+test('validatePack warns when an index scene has no lore file', () => {
+  const canon = {
+    meta: { id: 't', title: 't' },
+    index: { checks: [], characters: [], lore: [], scenes: ['t.street'] },
+    checks: {},
+    characters: {},
+    lore: {},
+    guarded: [],
+  } satisfies Canon
+  const diags = validatePack(canon)
+  assert.ok(diags.some((d) => d.code === 'MISSING_SCENE' && d.severity === 'warning'))
+})

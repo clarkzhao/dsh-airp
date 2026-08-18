@@ -34,6 +34,7 @@
 - [x] 社区包模板 `templates/community-pack` + `npm run pack:validate` + GitHub Actions
 - [x] `pack_interview`：8 问是数据，不是 persona 记忆；答案驱动 scaffold
 - [x] 定江补场景 lore：当康庙 / 乱葬岗
+- [x] 八问拆成两屏；`index.scenes` 要对 lore 文件；Issue 模板 + CONTRIBUTING
 
 ## 以后（v1+，见 docs/engine.md §12）
 

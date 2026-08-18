@@ -10,7 +10,7 @@ import { bootQuestionFromRefs, isAskCancelled, isAuthorPreset, isPlayPreset, ope
 import { expandUserPath, loadCatalog, matchTags, resolveIcActors, resolvePackDir, tagsFromMeta, userPacksDir, type PackRef } from './pack/catalog.ts'
 import { loadPack } from './pack/pack.ts'
 import { playHandoff } from './pack/handoff.ts'
-import { interviewCard, parseInterview } from './pack/interview.ts'
+import { interviewCard, interviewScreens, parseInterview } from './pack/interview.ts'
 import { scaffoldPack } from './pack/scaffold.ts'
 
 function sessionKey(exec: { agent?: { session?: { id?: string }; id?: string } } | undefined): string {
@@ -132,7 +132,7 @@ export function apply(ctx: Context, config: Config): void {
     }
     if (author && choice.kind === 'new-pack') {
       agent.inject({
-        content: [{ type: 'text', text: `${authorGuide}\n\n用户选择从零写包。先 ask_user_question 问齐 8 问，再 pack_scaffold。` }],
+        content: [{ type: 'text', text: `${authorGuide}\n\n用户选择从零写包。pack_interview 取两屏，ask_user_question 各问一次，再 pack_scaffold。` }],
         source: { kind: 'plugin', plugin: 'dsh-airp' },
       } as never)
       return
@@ -266,10 +266,16 @@ export function apply(ctx: Context, config: Config): void {
 
     tools.register(defineTool({
       name: 'pack_interview',
-      description: 'Return the 8 authoring questions. Pass them to ask_user_question as-is (split into two screens of 4). Author preset only.',
-      parameters: {},
+      description: 'Return authoring questions. screen=1|2 is one ask_user_question page of 4; omit for all 8 plus screens[]. Author preset only.',
+      parameters: { screen: { type: 'number', description: '1 = who/identity/scene/commission; 2 = teach/tier/tone/banned' } },
       output: jsonOut,
-      execute: async () => interviewCard() as unknown as Json,
+      execute: async (args) => {
+        const screen = args.screen === 1 || args.screen === 2 ? args.screen : undefined
+        const card = interviewCard(screen)
+        if (screen) return card as unknown as Json
+        const screens = interviewScreens()
+        return { questions: card.questions, screens } as unknown as Json
+      },
     }))
 
     tools.register(defineTool({
@@ -435,7 +441,7 @@ export function apply(ctx: Context, config: Config): void {
 export { WorldKernel } from './kernel/world-kernel.ts'
 export { loadPack, validatePack, initialState, isError } from './pack/pack.ts'
 export { loadCatalog, matchTags, resolveIcActors, tagsFromMeta, userPacksDir } from './pack/catalog.ts'
-export { interviewCard, parseInterview } from './pack/interview.ts'
+export { interviewCard, interviewScreens, parseInterview } from './pack/interview.ts'
 export { intentFromTool, intentFromCommand, toolsFor } from './host/translate.ts'
 export { HostRuntime } from './host/runtime.ts'
 export { shouldBootStory, resolveBootChoice, resolvePathAnswer } from './host/boot.ts'

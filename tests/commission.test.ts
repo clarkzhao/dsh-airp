@@ -63,8 +63,9 @@ test('commission spine: fact investigate, contest, digest, retry restores pre-co
 
   const authorCanon = structuredClone(loaded.canon!)
   authorCanon.checks['contest-sequence']!.formula = 'p = 0.01'
-  const diags = (await import('../src/pack/pack.ts')).validatePack(authorCanon)
-  assert.equal(diags.length, 0)
+  const { isError, validatePack } = await import('../src/pack/pack.ts')
+  const diags = validatePack(authorCanon)
+  assert.equal(diags.filter(isError).length, 0)
   const fresh = new HostRuntime({ canon: authorCanon, sessionId: 'play-2', seed: 'seed-tingen', role: 'play' })
   const again = fresh.dispatch({
     kind: 'tool',

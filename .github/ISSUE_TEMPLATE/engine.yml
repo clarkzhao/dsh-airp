@@ -1,0 +1,12 @@
+name: 引擎
+description: Kernel 门禁、鉴定公式、事件回放
+title: '[engine] '
+labels: [engine]
+body:
+  - type: textarea
+    id: repro
+    attributes:
+      label: 复现
+      description: 包 id、check id、期望 TurnResult。不要贴整本世界书。
+    validations:
+      required: true

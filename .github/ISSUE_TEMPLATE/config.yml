@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: 社区包不要 PR 进 packs/
+    url: https://github.com/clarkzhao/dsh-airp/blob/main/packs/README.md
+    about: 复制 templates/community-pack，放到 ~/.dsh/airp-packs/<id>/，或单独开仓。

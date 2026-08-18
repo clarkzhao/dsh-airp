@@ -16,6 +16,7 @@ export type PackDiagnosticCode =
   | 'REVEALED_OVERFLOW'
   | 'MISSING_COMMISSION'
   | 'OPENING_ABSENT'
+  | 'MISSING_SCENE'
 
 export interface PackDiagnostic {
   code: PackDiagnosticCode
@@ -162,6 +163,15 @@ export function validatePack(canon: Canon): PackDiagnostic[] {
       message: 'no lore key containing "commission"; play boot will have no opening job',
     })
   }
+  for (const scene of canon.index.scenes ?? []) {
+    if (!sceneHasLore(scene, canon.lore)) {
+      out.push({
+        code: 'MISSING_SCENE',
+        severity: 'warning',
+        message: `index scene ${scene} has no lore file ${scene.replaceAll('.', '-')}.md (or a parent key)`,
+      })
+    }
+  }
   return out
 }
 
@@ -247,6 +257,18 @@ async function listMd(dir: string): Promise<string[]> {
   } catch {
     return []
   }
+}
+
+function sceneHasLore(scene: string, lore: Record<string, LoreDoc>): boolean {
+  const dashed = scene.replaceAll('.', '-')
+  if (lore[dashed] || lore[scene]) return true
+  const parts = scene.split('.')
+  while (parts.length > 1) {
+    parts.pop()
+    const parent = parts.join('-')
+    if (lore[parent] || lore[parts.join('.')]) return true
+  }
+  return false
 }
 
 function isJsonRecord(value: unknown): value is Record<string, Json> {

@@ -42,6 +42,9 @@ test('jzdh-dingjiang loads with pack-declared stats and moth/candle fields', asy
   assert.equal(ding.stats?.insight, 0.4)
   assert.ok(loaded.canon!.checks['contest-wushu'])
   assert.ok(loaded.canon!.lore['jzdh-commission'])
+  assert.ok(loaded.canon!.lore['jzdh-dangkang'])
+  assert.ok(loaded.canon!.lore['jzdh-luanzanggang'])
+  assert.ok(!loaded.diagnostics.some((d) => d.code === 'MISSING_SCENE'))
 })
 
 test('matchTags uses pack lexicon instead of hardcoded LOTM words', () => {

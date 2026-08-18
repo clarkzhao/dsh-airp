@@ -35,7 +35,7 @@ packs/<your-id>/            # 本地实验；默认被 .gitignore
 npm run pack:validate -- ~/.dsh/airp-packs/my-pack
 ```
 
-不要把社区包 PR 进本仓 `packs/`，除非它要成为下一个官方 demo。Issue 标签建议：`pack` / `demo` / `engine`。
+不要把社区包 PR 进本仓 `packs/`，除非它要成为下一个官方 demo。Issue 用仓库模板（`pack` / `authoring` / `engine`），说明见 [CONTRIBUTING.md](CONTRIBUTING.md)。
 
 ## 开发
 

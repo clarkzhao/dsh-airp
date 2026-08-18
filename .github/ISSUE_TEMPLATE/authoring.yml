@@ -1,0 +1,23 @@
+name: 创造者流程
+description: 八问、scaffold、校验诊断、交接卡
+title: '[authoring] '
+labels: [authoring]
+body:
+  - type: dropdown
+    id: step
+    attributes:
+      label: 卡在哪一步
+      options:
+        - pack_interview / ask-user
+        - pack_scaffold
+        - pack_validate 诊断难懂
+        - pack_open_play 交接
+        - 其他
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: 期望 vs 实际
+    validations:
+      required: true
