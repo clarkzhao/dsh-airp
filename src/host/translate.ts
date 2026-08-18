@@ -10,6 +10,19 @@ export function toolsFor(role: PlayRole): readonly string[] {
   return role === 'author' ? [...PLAY_TOOLS, ...AUTHOR_EXTRA_TOOLS] : PLAY_TOOLS
 }
 
+export function isAuthorTool(name: string): boolean {
+  return (AUTHOR_EXTRA_TOOLS as readonly string[]).includes(name)
+}
+
+export function roleFromPreset(presetId?: string): PlayRole {
+  return presetId === 'airp-author' ? 'author' : 'play'
+}
+
+export function denyAuthorTool(name: string, role: PlayRole): string | undefined {
+  if (isAuthorTool(name) && role !== 'author') return `tool ${name} is not visible to play`
+  return undefined
+}
+
 export function intentFromTool(name: string, args: Record<string, unknown>): Intent | { error: string } {
   switch (name) {
     case 'lore_get':

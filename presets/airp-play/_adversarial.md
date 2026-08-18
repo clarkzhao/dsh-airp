@@ -30,7 +30,8 @@
 - 合法换场还没有 travel check；玩家要换场只能 `/gm scene=… :: 理由`。时空边图仍在 roadmap。
 - 两条线「相交」：ding 在 roster/characters，不在自拟开场 present。遇见要靠日后 fact/gm 拉上场，不是自动剧情。
 - wanderer 没有 Canon 卡：check 走 State.characters，UNKNOWN_ACTOR 不会爆；IC 别名只有 id。
-- `loadRuntime` 无 runtime 仍会静默开廷根。这是 seating 取消后的宿主洞，不是本轮开局卡。
+- 同句点名「丁二郎 + 蛾人」时 `resolveIcActors` 按键序可能把 ding 当 defender（catalog.ts）。只点名蛾人的 DoD 不触发。
+- play 工具目录里 author 工具名仍在（play-mask 不能在空表上 restrict）。执行闸：`denyAuthorTool` + 四个 author execute。取消开局写入 `blocked`，`loadRuntime` 抛错不回廷根。
 
 ## 4. 已通过
 

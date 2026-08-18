@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { intentFromCommand, intentFromTool, toolsFor } from '../src/host/translate.ts'
+import { denyAuthorTool, intentFromCommand, intentFromTool, isAuthorTool, roleFromPreset, toolsFor } from '../src/host/translate.ts'
 
 test('play mask does not include pack_validate', () => {
   assert.deepEqual([...toolsFor('play')], ['lore_get', 'state_read', 'check_match', 'check_propose', 'state_propose_fact'])
@@ -11,6 +11,17 @@ test('play mask does not include pack_validate', () => {
   assert.ok(!toolsFor('play').includes('pack_scaffold'))
   assert.ok(!toolsFor('play').includes('pack_open_play'))
   assert.ok(!toolsFor('play').includes('pack_interview'))
+  assert.equal(isAuthorTool('pack_validate'), true)
+  assert.equal(isAuthorTool('lore_get'), false)
+  assert.equal(roleFromPreset('airp-play'), 'play')
+  assert.equal(roleFromPreset('airp-author'), 'author')
+  assert.equal(roleFromPreset(undefined), 'play')
+  assert.equal(denyAuthorTool('pack_validate', 'play'), 'tool pack_validate is not visible to play')
+  assert.equal(denyAuthorTool('pack_scaffold', 'play'), 'tool pack_scaffold is not visible to play')
+  assert.equal(denyAuthorTool('pack_interview', 'play'), 'tool pack_interview is not visible to play')
+  assert.equal(denyAuthorTool('pack_open_play', 'play'), 'tool pack_open_play is not visible to play')
+  assert.equal(denyAuthorTool('pack_validate', 'author'), undefined)
+  assert.equal(denyAuthorTool('lore_get', 'play'), undefined)
 })
 
 test('tool names translate to kernel intents', () => {

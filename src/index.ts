@@ -4,7 +4,7 @@ import type { Context } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
 import { defineTool } from '@deepseek-ai/dsh-tools'
 import type { Json } from './kernel/types.ts'
-import { receiptText } from './host/translate.ts'
+import { denyAuthorTool, receiptText, roleFromPreset } from './host/translate.ts'
 import { HostRuntime } from './host/runtime.ts'
 import { bootQuestionFromRefs, isAskCancelled, isAuthorPreset, isPlayPreset, mergeBootAnswers, openRuntime, pathQuestion, PICK_NEW_PACK, presetFromSession, resolveBootChoice, resolvePathAnswer, resolveSeating, seatingNeedsTraveler, seatingQuestion, sessionIsBlank, shouldBootStory, travelerQuestion } from './host/boot.ts'
 import { expandUserPath, loadCatalog, matchTags, resolveIcActors, resolvePackDir, tagsFromMeta, userPacksDir, type PackRef } from './pack/catalog.ts'
@@ -40,21 +40,15 @@ export function apply(ctx: Context, config: Config): void {
   const extraUserDir = config.userPacksDir ? config.userPacksDir : undefined
   const runtimes = new Map<string, HostRuntime>()
   const lastScaffold = new Map<string, string>()
+  const blocked = new Set<string>()
 
   const catalogOf = () => loadCatalog({ bundledDir: packsDir, userDir: extraUserDir })
 
   const loadRuntime = async (key: string) => {
     const hit = runtimes.get(key)
     if (hit) return hit
-    const created = await openRuntime({
-      packsDir,
-      userDir: extraUserDir,
-      sessionId: key,
-      choice: { kind: 'bundled', packId: config.defaultPack ?? 'lotm-tingen' },
-    })
-    if (config.loreBudgetChars) created.canon.meta.loreBudgetChars = config.loreBudgetChars
-    runtimes.set(key, created)
-    return created
+    if (blocked.has(key)) throw new Error('AIRP boot was cancelled. Pick a pack again in a new session; do not fall back to tingen.')
+    throw new Error('AIRP world is not loaded. Finish the opening card first.')
   }
 
   const sessionPreset = (agent: {
@@ -77,7 +71,10 @@ export function apply(ctx: Context, config: Config): void {
       alreadyBooted: runtimes.has(String(agent.id)),
     })) return
     void bootSession(agent).catch((error) => {
-      if (isAskCancelled(error)) return
+      if (isAskCancelled(error)) {
+        blocked.add(String(agent.id))
+        return
+      }
     })
   }
 
@@ -143,7 +140,10 @@ export function apply(ctx: Context, config: Config): void {
     try {
       choice = await askChoice(agent, undefined, author)
     } catch (err) {
-      if (isAskCancelled(err)) return
+      if (isAskCancelled(err)) {
+        blocked.add(key)
+        return
+      }
       throw err
     }
     if (author && choice.kind === 'new-pack') {
@@ -167,7 +167,10 @@ export function apply(ctx: Context, config: Config): void {
           try {
             seat = await askSeating(agent, dir)
           } catch (err) {
-            if (isAskCancelled(err)) return
+            if (isAskCancelled(err)) {
+              blocked.add(key)
+              return
+            }
             throw err
           }
         }
@@ -180,6 +183,7 @@ export function apply(ctx: Context, config: Config): void {
           seat,
         })
         if (config.loreBudgetChars) created.canon.meta.loreBudgetChars = config.loreBudgetChars
+        blocked.delete(key)
         runtimes.set(key, created)
         const brief = author ? `${authorGuide}\n\n当前加载：\n${created.bootBrief()}` : created.bootBrief()
         agent.inject({
@@ -188,12 +192,18 @@ export function apply(ctx: Context, config: Config): void {
         } as never)
         return created
       } catch (err) {
-        if (isAskCancelled(err)) return
+        if (isAskCancelled(err)) {
+          blocked.add(key)
+          return
+        }
         const message = err instanceof Error ? err.message : String(err)
         try {
           choice = await askChoice(agent, message, author)
         } catch (again) {
-          if (isAskCancelled(again)) return
+          if (isAskCancelled(again)) {
+            blocked.add(key)
+            return
+          }
           throw again
         }
       }
@@ -209,7 +219,9 @@ export function apply(ctx: Context, config: Config): void {
       },
     }
 
-    const runTool = async (name: string, args: Record<string, unknown>, exec: { agent?: { session?: { id?: string }; id?: string } }) => {
+    const runTool = async (name: string, args: Record<string, unknown>, exec: { agent?: { session?: { id?: string; header?: { agentPreset?: string }; events?: ReadonlyArray<{ type?: string; data?: { agentPreset?: string } }> }; id?: string; ctx?: unknown } }) => {
+      const denied = denyAuthorTool(name, roleFromPreset(sessionPreset(exec.agent ?? {})))
+      if (denied) throw new Error(denied)
       if (name === 'pack_validate') {
         const catalog = await catalogOf()
         const packId = typeof args.packId === 'string' ? args.packId : undefined
@@ -300,7 +312,9 @@ export function apply(ctx: Context, config: Config): void {
       description: 'Return authoring questions. screen=1|2 is one ask_user_question page of 4. Do not rewrite questions. Do not scan the workspace for novels first.',
       parameters: { screen: { type: 'number', description: '1 = who/identity/scene/commission; 2 = teach/tier/tone/banned' } },
       output: jsonOut,
-      execute: async (args) => {
+      execute: async (args, exec) => {
+        const denied = denyAuthorTool('pack_interview', roleFromPreset(sessionPreset(exec.agent ?? {})))
+        if (denied) throw new Error(denied)
         const screen = args.screen === 1 || args.screen === 2 ? args.screen : undefined
         const card = interviewCard(screen)
         if (screen) return card as unknown as Json
@@ -325,6 +339,8 @@ export function apply(ctx: Context, config: Config): void {
       },
       output: jsonOut,
       execute: async (args, exec) => {
+        const denied = denyAuthorTool('pack_scaffold', roleFromPreset(sessionPreset(exec.agent ?? {})))
+        if (denied) throw new Error(denied)
         const axioms = Array.isArray(args.axioms) ? args.axioms.map(String) : undefined
         const interview = args.interview && typeof args.interview === 'object'
           ? parseInterview(args.interview as { answers?: Array<{ id?: string; selected?: string[]; custom?: string }> })
@@ -351,6 +367,8 @@ export function apply(ctx: Context, config: Config): void {
       parameters: { packId: { type: 'string', description: 'pack id or directory; defaults to the loaded pack' } },
       output: jsonOut,
       execute: async (args, exec) => {
+        const denied = denyAuthorTool('pack_open_play', roleFromPreset(sessionPreset(exec.agent ?? {})))
+        if (denied) throw new Error(denied)
         const catalog = await catalogOf()
         const packId = typeof args.packId === 'string' ? args.packId : undefined
         const scaffolded = lastScaffold.get(sessionKey(exec))
@@ -465,11 +483,12 @@ export function apply(ctx: Context, config: Config): void {
     if (!text) return next()
     let lexicon = tagsFromMeta()
     const cached = runtimes.get(String(payload.agent.id))
-    if (cached) lexicon = tagsFromMeta(cached.canon.meta)
+    if (!cached) return next()
+    lexicon = tagsFromMeta(cached.canon.meta)
     const tags = matchTags(text, lexicon)
     if (tags.length === 0) return next()
     try {
-      const rt = await loadRuntime(String(payload.agent.id))
+      const rt = cached
       const snap = rt.snapshot()
       const actors = resolveIcActors(text, snap.state.present, rt.canon.characters)
       const out = rt.dispatch({ kind: 'ic', tags, actors })
