@@ -439,7 +439,7 @@ export function apply(ctx: Context, config: Config): void {
 }
 
 export { WorldKernel } from './kernel/world-kernel.ts'
-export { loadPack, validatePack, initialState, isError } from './pack/pack.ts'
+export { loadPack, validatePack, initialState, isError, loreKeyCandidates, resolveLoreKey } from './pack/pack.ts'
 export { loadCatalog, matchTags, resolveIcActors, tagsFromMeta, userPacksDir } from './pack/catalog.ts'
 export { interviewCard, interviewScreens, parseInterview } from './pack/interview.ts'
 export { intentFromTool, intentFromCommand, toolsFor } from './host/translate.ts'

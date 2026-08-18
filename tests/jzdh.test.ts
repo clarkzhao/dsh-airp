@@ -20,7 +20,10 @@ test('jzdh-dingjiang commission spine: fact, contest, cost, retry', async () => 
   assert.equal(state.characters['ding-songyan']?.insight, 0.4)
 
   const play = new HostRuntime({ canon: loaded.canon!, sessionId: 'jzdh', seed: 'seed-jzdh' })
-  assert.match(play.bootBrief(), /失踪|张睿|委托/)
+  const brief = play.bootBrief()
+  assert.match(brief, /失踪|张睿|委托/)
+  assert.match(brief, /当康庙/)
+  assert.match(brief, /powang|破妄/)
 
   const accept = play.dispatch({
     kind: 'tool',

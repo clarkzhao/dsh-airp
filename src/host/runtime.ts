@@ -1,6 +1,7 @@
 import type { Canon, Intent, StoryEvent, TurnOptions, TurnResult, WorldState } from '../kernel/types.ts'
 import { WorldKernel } from '../kernel/world-kernel.ts'
-import { initialState, isError, validatePack, type PackDiagnostic } from '../pack/pack.ts'
+import { initialState, isError, loreKeyCandidates, resolveLoreKey, validatePack, type PackDiagnostic } from '../pack/pack.ts'
+import { tagsFromMeta } from '../pack/catalog.ts'
 import { intentFromCommand, intentFromTool, receiptText, toolsFor, type PlayRole } from './translate.ts'
 
 export type HostRequest =
@@ -66,13 +67,33 @@ export class HostRuntime {
   }
 
   bootBrief(): string {
-    const key = ['commission', 'jzdh-commission'].find((id) => this.canon.lore[id])
-      ?? Object.keys(this.canon.lore).find((id) => id.includes('commission'))
-    const commission = key ? this.kernel.turn(this.state, { type: 'lore', key }) : undefined
-    const lore = commission?.ok && commission.receipt.kind === 'lore' ? commission.receipt.body : ''
-    const extra = lore ? `\n委托：\n${lore}` : ''
-    const sceneHint = this.state.scene.includes('tingen') ? '开场直接叙述当前据点。' : '开场直接叙述当前场景。'
-    return `${this.indexText()}\nscene: ${this.state.scene}\npresent: ${this.state.present.join(', ')}${extra}\n\n你已经在引擎里。禁止再问引擎在哪、不要扫工作区、不要用 ask_user_question 找路径。\n${sceneHint}用 lore_get / state_read / check_propose / state_propose_fact。`
+    const commissionKey = resolveLoreKey(
+      Object.keys(this.canon.lore).filter((id) => id.includes('commission')),
+      this.canon.lore,
+    )
+    const sceneKey = resolveLoreKey(loreKeyCandidates(this.state.scene), this.canon.lore)
+    const commission = commissionKey ? this.kernel.turn(this.state, { type: 'lore', key: commissionKey }) : undefined
+    const scene = sceneKey ? this.kernel.turn(this.state, { type: 'lore', key: sceneKey }) : undefined
+    const job = commission?.ok && commission.receipt.kind === 'lore' ? commission.receipt.body : ''
+    const place = scene?.ok && scene.receipt.kind === 'lore' ? scene.receipt.body : ''
+    const lexicon = tagsFromMeta(this.canon.meta)
+    const tagLine = Object.entries(lexicon).map(([tag, words]) => `${tag}←${words.slice(0, 4).join('/')}`).join('；')
+    const facts = Object.entries(this.state.facts)
+      .filter(([k]) => !k.startsWith('__'))
+      .map(([k, v]) => `${k}=${typeof v === 'string' ? v : JSON.stringify(v)}`)
+      .join(', ')
+    return [
+      this.indexText(),
+      `scene: ${this.state.scene}`,
+      `present: ${this.state.present.join(', ')}`,
+      facts ? `facts: ${facts}` : '',
+      tagLine ? `鉴定词：${tagLine}` : '',
+      place ? `场景：\n${place}` : '',
+      job ? `委托：\n${job}` : '',
+      '',
+      '你已经在引擎里。禁止再问引擎在哪、不要扫工作区、不要用 ask_user_question 找路径。',
+      '开场直接叙述当前场景。用 lore_get / state_read / check_propose / state_propose_fact。',
+    ].filter((line) => line !== undefined).join('\n')
   }
 
   dispatch(req: HostRequest): HostResponse {

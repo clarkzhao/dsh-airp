@@ -35,6 +35,8 @@
 - [x] `pack_interview`：8 问是数据，不是 persona 记忆；答案驱动 scaffold
 - [x] 定江补场景 lore：当康庙 / 乱葬岗
 - [x] 八问拆成两屏；`index.scenes` 要对 lore 文件；Issue 模板 + CONTRIBUTING
+- [x] GitHub 标签 `pack` / `authoring` / `engine` / `demo` / `docs`
+- [x] 开场 brief 按包装配场景 lore、委托、鉴定词，不再写死廷根
 
 ## 以后（v1+，见 docs/engine.md §12）
 

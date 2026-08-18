@@ -259,16 +259,25 @@ async function listMd(dir: string): Promise<string[]> {
   }
 }
 
-function sceneHasLore(scene: string, lore: Record<string, LoreDoc>): boolean {
-  const dashed = scene.replaceAll('.', '-')
-  if (lore[dashed] || lore[scene]) return true
+export function loreKeyCandidates(scene: string): string[] {
+  const keys = [scene.replaceAll('.', '-'), scene]
   const parts = scene.split('.')
   while (parts.length > 1) {
     parts.pop()
-    const parent = parts.join('-')
-    if (lore[parent] || lore[parts.join('.')]) return true
+    keys.push(parts.join('-'), parts.join('.'))
   }
-  return false
+  return keys
+}
+
+export function resolveLoreKey(keys: Iterable<string>, lore: Record<string, LoreDoc>): string | undefined {
+  for (const key of keys) {
+    if (lore[key]) return key
+  }
+  return undefined
+}
+
+function sceneHasLore(scene: string, lore: Record<string, LoreDoc>): boolean {
+  return Boolean(resolveLoreKey(loreKeyCandidates(scene), lore))
 }
 
 function isJsonRecord(value: unknown): value is Record<string, Json> {

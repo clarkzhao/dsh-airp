@@ -47,6 +47,21 @@ test('selecting bundled tingen opens a runtime with commission brief', async () 
   assert.match(brief, /lotm-tingen/)
   assert.match(brief, /commission|委托|黑荆棘/)
   assert.match(brief, /禁止再问引擎在哪/)
+  assert.match(brief, /鉴定词/)
+})
+
+test('dingjiang boot brief uses temple scene lore and pack tags', async () => {
+  const rt = await openRuntime({
+    packsDir,
+    sessionId: 'boot-jzdh',
+    choice: { kind: 'bundled', packId: 'jzdh-dingjiang' },
+  })
+  const brief = rt.bootBrief()
+  assert.match(brief, /jzdh-dingjiang|定江/)
+  assert.match(brief, /当康庙|说书/)
+  assert.match(brief, /powang|破妄/)
+  assert.match(brief, /commission: pending|commission=pending/)
+  assert.doesNotMatch(brief, /黑荆棘安保公司/)
 })
 
 test('custom path loads that directory', async () => {
