@@ -6,7 +6,7 @@ import { defineTool } from '@deepseek-ai/dsh-tools'
 import type { Json } from './kernel/types.ts'
 import { receiptText } from './host/translate.ts'
 import { HostRuntime } from './host/runtime.ts'
-import { bootQuestionFromRefs, isAskCancelled, isAuthorPreset, isPlayPreset, openRuntime, pathQuestion, PICK_NEW_PACK, presetFromSession, resolveBootChoice, resolvePathAnswer, resolveSeating, seatingQuestion, sessionIsBlank, shouldBootStory } from './host/boot.ts'
+import { bootQuestionFromRefs, isAskCancelled, isAuthorPreset, isPlayPreset, mergeBootAnswers, openRuntime, pathQuestion, PICK_NEW_PACK, presetFromSession, resolveBootChoice, resolvePathAnswer, resolveSeating, seatingNeedsTraveler, seatingQuestion, sessionIsBlank, shouldBootStory, travelerQuestion } from './host/boot.ts'
 import { expandUserPath, loadCatalog, matchTags, resolveIcActors, resolvePackDir, tagsFromMeta, userPacksDir, type PackRef } from './pack/catalog.ts'
 import { loadPack, playableCharacters, playableScenes } from './pack/pack.ts'
 import { playHandoff } from './pack/handoff.ts'
@@ -118,7 +118,11 @@ export function apply(ctx: Context, config: Config): void {
     if (!loaded.ok || !loaded.canon) return undefined
     if (playableCharacters(loaded.canon).length + playableScenes(loaded.canon).length === 0) return undefined
     const answer = await questions.ask({ questions: seatingQuestion(loaded.canon).questions, agent: agent as never })
-    return resolveSeating(answer, loaded.canon)
+    const draft = resolveSeating(answer, loaded.canon)
+    if (!seatingNeedsTraveler(draft)) return draft
+    const bio1 = await questions.ask({ questions: travelerQuestion(1).questions, agent: agent as never })
+    const bio2 = await questions.ask({ questions: travelerQuestion(2).questions, agent: agent as never })
+    return resolveSeating(answer, loaded.canon, mergeBootAnswers(bio1, bio2))
   }
 
   const authorGuide = [

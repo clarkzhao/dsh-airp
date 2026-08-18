@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { test } from 'node:test'
-import { BUNDLED_JZDH, BUNDLED_TINGEN, PICK_CUSTOM, PICK_DEFAULT_SEAT, PICK_NEW_PACK, PICK_WANDERER, bootQuestion, bootQuestionFromRefs, isAskCancelled, looksLikePackPath, openRuntime, pathQuestion, presetFromSession, resolveBootChoice, resolvePathAnswer, resolveSeating, seatingQuestion, sessionIsBlank, shouldBootStory } from '../src/host/boot.ts'
+import { BUNDLED_JZDH, BUNDLED_TINGEN, PICK_CUSTOM, PICK_CUSTOM_TRAVELER, PICK_EASY_DING, PICK_NEW_PACK, bootQuestion, bootQuestionFromRefs, isAskCancelled, looksLikePackPath, openRuntime, pathQuestion, presetFromSession, resolveBootChoice, resolvePathAnswer, resolveSeating, seatingQuestion, sessionIsBlank, shouldBootStory, travelerQuestion } from '../src/host/boot.ts'
 import { loadPack } from '../src/pack/pack.ts'
 
 const packsDir = join(dirname(fileURLToPath(import.meta.url)), '..', 'packs')
@@ -124,50 +124,60 @@ test('pick-custom without a path asks again and does not fall back to tingen', (
   )
 })
 
-test('dingjiang seating can start as Zheng at the zongmen, not Ding at the temple', async () => {
+test('easy dingjiang seating stays Ding at the temple', async () => {
   const loaded = await loadPack(join(packsDir, 'jzdh-dingjiang'))
   assert.equal(loaded.ok, true)
   const q = seatingQuestion(loaded.canon!)
-  const pcLabels = q.questions[0]!.options!.map((o) => o.label)
-  assert.ok(pcLabels.includes(PICK_DEFAULT_SEAT))
-  assert.ok(pcLabels.some((label) => label.includes('郑朱曦')))
-  assert.ok(pcLabels.includes(PICK_WANDERER))
-  const sceneLabels = q.questions[1]!.options!.map((o) => o.label)
-  assert.ok(sceneLabels.includes('jzdh.zongmen'))
+  const modes = q.questions[0]!.options!.map((o) => o.label)
+  assert.ok(modes.includes(PICK_EASY_DING))
+  assert.ok(modes.includes(PICK_CUSTOM_TRAVELER))
   const seat = resolveSeating({
-    answers: [
-      { id: 'boot_pc', selected: ['郑朱曦 (zheng-zhuxi)'] },
-      { id: 'boot_scene', selected: ['jzdh.zongmen'] },
-    ],
+    answers: [{ id: 'boot_mode', selected: [PICK_EASY_DING] }],
   }, loaded.canon!)
   const rt = await openRuntime({
     packsDir,
-    sessionId: 'seat-zheng',
+    sessionId: 'seat-easy',
     choice: { kind: 'bundled', packId: 'jzdh-dingjiang' },
     seat,
   })
-  assert.equal(rt.snapshot().state.present[0], 'zheng-zhuxi')
-  assert.equal(rt.snapshot().state.scene, 'jzdh.zongmen')
-  assert.match(rt.bootBrief(), /pc: zheng-zhuxi/)
+  assert.equal(rt.snapshot().state.present[0], 'ding-songyan')
+  assert.equal(rt.snapshot().state.scene, 'jzdh.dangkang')
+  assert.equal(rt.snapshot().state.facts.play_mode, 'easy')
 })
 
-test('wanderer seating builds a nameless card without stealing a roster id', async () => {
+test('custom traveler shares Ding arrival night and does not steal his card', async () => {
   const loaded = await loadPack(join(packsDir, 'jzdh-dingjiang'))
+  assert.equal(travelerQuestion(1).questions.length, 3)
+  assert.equal(travelerQuestion(2).questions.length, 3)
   const seat = resolveSeating({
     answers: [
-      { id: 'boot_pc', selected: [PICK_WANDERER] },
-      { id: 'boot_scene', selected: ['jzdh.dangkang'] },
-      { id: 'boot_wanderer', custom: '过路刀客' },
+      { id: 'boot_mode', selected: [PICK_CUSTOM_TRAVELER] },
+      { id: 'boot_scene', selected: ['jzdh.zongmen'] },
     ],
-  }, loaded.canon!)
+  }, loaded.canon!, {
+    answers: [
+      { id: 'boot_name', custom: '过路刀客' },
+      { id: 'boot_age', custom: '22' },
+      { id: 'boot_vocation', custom: '镖师' },
+      { id: 'boot_origin', custom: '离魂失忆' },
+      { id: 'boot_birthplace', custom: '岳江府' },
+      { id: 'boot_ties', custom: '认得许长安' },
+    ],
+  })
   const rt = await openRuntime({
     packsDir,
-    sessionId: 'seat-wanderer',
+    sessionId: 'seat-traveler',
     choice: { kind: 'bundled', packId: 'jzdh-dingjiang' },
     seat,
   })
   const state = rt.snapshot().state
   assert.equal(state.present[0], 'wanderer')
+  assert.equal(state.scene, 'jzdh.zongmen')
   assert.equal(state.facts.pc_name, '过路刀客')
-  assert.equal(state.characters.wanderer?.display_name, '过路刀客')
+  assert.equal(state.facts.pc_age, '22')
+  assert.equal(state.facts.pc_vocation, '镖师')
+  assert.equal(state.facts.arrival, 'same-night-as-ding')
+  assert.ok(state.characters['ding-songyan'])
+  assert.ok(!state.present.includes('ding-songyan'))
+  assert.match(rt.bootBrief(), /同一夜|借尸还魂/)
 })

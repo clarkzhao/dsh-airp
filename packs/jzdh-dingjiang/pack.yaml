@@ -29,3 +29,4 @@ opening:
     weather: 晴暑
     commission: pending
     alarm: false
+    play_mode: easy

@@ -253,21 +253,37 @@ export function playableScenes(canon: Canon): string[] {
 export function applySeating(state: WorldState, canon: Canon, seat?: OpeningSeat): WorldState {
   if (!seat) return state
   const next = structuredClone(state)
+  if (seat.mode === 'easy' || (!seat.mode && !seat.pc && !seat.customName && !seat.scene)) {
+    next.facts.play_mode = 'easy'
+    return next
+  }
   if (seat.scene && playableScenes(canon).includes(seat.scene)) {
     next.scene = seat.scene
     const key = resolveLoreKey(loreKeyCandidates(seat.scene), canon.lore)
     if (key && !next.revealed.includes(key)) next.revealed = [...next.revealed, key]
   }
-  if (seat.customName?.trim()) {
-    const name = seat.customName.trim()
+  const custom = Boolean(seat.customName?.trim() || seat.mode === 'custom')
+  if (custom) {
+    const name = seat.customName?.trim() || '路人'
     next.characters[WANDERER_ID] = {
       ...defaultCharacterStats(canon),
       display_name: name,
     }
-    next.present = [WANDERER_ID, ...next.present.filter((id) => id !== WANDERER_ID)]
+    next.present = [WANDERER_ID, ...next.present.filter((id) => id !== WANDERER_ID && id !== (canon.meta.opening?.present?.[0] ?? ''))]
+    next.facts.play_mode = 'custom'
     next.facts.pc_name = name
+    if (seat.age) next.facts.pc_age = seat.age
+    if (seat.vocation) next.facts.pc_vocation = seat.vocation
+    if (seat.origin) next.facts.pc_origin = seat.origin
+    if (seat.birthplace) next.facts.pc_birthplace = seat.birthplace
+    if (seat.ties) next.facts.pc_ties = seat.ties
+    if (canon.meta.id === 'jzdh-dingjiang') {
+      next.facts.arrival = 'same-night-as-ding'
+      next.facts.amnesia = 'partial'
+    }
     return next
   }
+  next.facts.play_mode = seat.mode ?? 'cast'
   if (seat.pc && next.characters[seat.pc]) {
     next.present = [seat.pc, ...next.present.filter((id) => id !== seat.pc)]
   }

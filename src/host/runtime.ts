@@ -92,10 +92,30 @@ export class HostRuntime {
       tagLine ? `鉴定词：${tagLine}` : '',
       place ? `场景：\n${place}` : '',
       job ? `委托：\n${job}` : '',
+      this.arrivalNote(),
       '',
       '你已经在引擎里。禁止再问引擎在哪、不要扫工作区、不要用 ask_user_question 找路径。',
       '开场直接叙述当前场景。用 lore_get / state_read / check_propose / state_propose_fact。',
     ].filter((line) => line !== undefined).join('\n')
+  }
+
+  private arrivalNote(): string {
+    if (this.state.facts.play_mode !== 'custom') return ''
+    const bits = [
+      this.state.facts.pc_name && `自称 ${this.state.facts.pc_name}`,
+      this.state.facts.pc_age && `${this.state.facts.pc_age} 岁`,
+      this.state.facts.pc_vocation && `营生：${this.state.facts.pc_vocation}`,
+      this.state.facts.pc_origin && `来历：${this.state.facts.pc_origin}`,
+      this.state.facts.pc_birthplace && `籍贯：${this.state.facts.pc_birthplace}`,
+      this.state.facts.pc_ties && `关系：${this.state.facts.pc_ties}`,
+    ].filter(Boolean)
+    const sameNight = this.state.facts.arrival === 'same-night-as-ding'
+    return [
+      bits.length ? `自拟穿越者：${bits.join('；')}` : '自拟穿越者。',
+      sameNight
+        ? '切入夜与丁松言借尸还魂同一夜。对外可称离魂失忆。丁松言仍在定江府，两条线可能相交，不要抢他的底牌。'
+        : '',
+    ].filter(Boolean).join('\n')
   }
 
   dispatch(req: HostRequest): HostResponse {

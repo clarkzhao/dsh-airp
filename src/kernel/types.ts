@@ -72,9 +72,15 @@ export interface PackOpening {
 }
 
 export interface OpeningSeat {
+  mode?: 'easy' | 'custom'
   pc?: string
   scene?: string
   customName?: string
+  age?: string
+  vocation?: string
+  origin?: string
+  birthplace?: string
+  ties?: string
 }
 
 export interface PackMeta {

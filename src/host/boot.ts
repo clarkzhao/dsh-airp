@@ -1,5 +1,5 @@
 import type { OpeningSeat } from '../kernel/types.ts'
-import { loadPack, playableCharacters, playableScenes } from '../pack/pack.ts'
+import { loadPack, playableScenes } from '../pack/pack.ts'
 import { expandUserPath, type PackRef } from '../pack/catalog.ts'
 import { HostRuntime } from './runtime.ts'
 
@@ -10,7 +10,8 @@ export const BUNDLED_JZDH = '定江切片 jzdh-dingjiang'
 export const PICK_CUSTOM = '选择我的世界包目录…'
 export const PICK_NEW_PACK = '从零写一个新世界包…'
 export const PICK_DEFAULT_SEAT = '用包默认开场'
-export const PICK_WANDERER = '自拟路人（写名字）'
+export const PICK_EASY_DING = '轻松丁松言剧情'
+export const PICK_CUSTOM_TRAVELER = '自拟穿越者'
 
 export interface BootAsk {
   questions: Array<{
@@ -164,67 +165,89 @@ export async function listPackIds(packsDir: string): Promise<string[]> {
 }
 
 export function seatingQuestion(canon: import('../kernel/types.ts').Canon): BootAsk {
-  const pcs = playableCharacters(canon)
   const scenes = playableScenes(canon)
-  const pcOptions = [
-    { label: PICK_DEFAULT_SEAT, description: '沿用 pack.yaml 的 opening.present 与 entry_scene。' },
-    ...pcs.map((id) => {
-      const card = canon.characters[id]
-      return { label: card?.name ? `${card.name} (${id})` : id, description: card?.body?.split('\n')[0]?.slice(0, 80) }
-    }),
-    { label: PICK_WANDERER, description: '下一格写名字。引擎建一张路人卡，不占用原著底牌。' },
-  ]
-  const sceneOptions = [
-    { label: PICK_DEFAULT_SEAT, description: `默认 ${canon.meta.entry_scene ?? 'start'}` },
-    ...scenes.map((id) => ({ label: id, description: `进入 ${id}` })),
-  ]
+  const dingjiang = canon.meta.id === 'jzdh-dingjiang'
+  const modeOptions = dingjiang
+    ? [
+        { label: PICK_EASY_DING, description: '当康庙说书人，接失踪的张睿。轻松跟一条样例线。' },
+        { label: PICK_CUSTOM_TRAVELER, description: '自拟身份，同年同夜切入。丁松言仍在城中，两条线可能相交。' },
+      ]
+    : [
+        { label: PICK_DEFAULT_SEAT, description: '沿用 pack.yaml 的 opening.present 与 entry_scene。' },
+        { label: PICK_CUSTOM_TRAVELER, description: '自拟路人，不占用原著底牌。' },
+      ]
+  const sceneOptions = scenes.map((id) => ({ label: id, description: `进入 ${id}` }))
   return {
     questions: [
       {
-        id: 'boot_pc',
-        header: '扮演谁',
-        question: '选一个在册人物，或自拟路人。不必是默认主角。',
-        options: pcOptions,
+        id: 'boot_mode',
+        header: '开局方式',
+        question: dingjiang
+          ? '轻松跟丁松言样例线，还是自拟一个同年同夜切入的穿越者？'
+          : '用包默认开场，还是自拟人物？',
+        options: modeOptions,
       },
       {
         id: 'boot_scene',
         header: '从哪开场',
-        question: '选一个已有场景 lore 的地点。',
-        options: sceneOptions,
-      },
-      {
-        id: 'boot_wanderer',
-        header: '路人名字',
-        question: '若上栏选了「自拟路人」，在此写称呼。否则可空。',
+        question: dingjiang
+          ? '自拟穿越者再选落点。轻松丁松言线默认当康庙。'
+          : '自拟人物再选地点。默认开场可忽略。',
+        options: sceneOptions.length ? sceneOptions : [{ label: PICK_DEFAULT_SEAT, description: `默认 ${canon.meta.entry_scene ?? 'start'}` }],
       },
     ],
   }
 }
 
-export function resolveSeating(answer: BootAnswer, canon: import('../kernel/types.ts').Canon): OpeningSeat {
-  const pcHit = answer.answers.find((a) => a.id === 'boot_pc')
-  const sceneHit = answer.answers.find((a) => a.id === 'boot_scene')
-  const wanderer = answer.answers.find((a) => a.id === 'boot_wanderer')
-  const pcLabel = pcHit?.selected?.[0]?.trim()
-  const sceneLabel = sceneHit?.selected?.[0]?.trim()
-  const customName = wanderer?.custom?.trim() || (pcLabel === PICK_WANDERER ? wanderer?.selected?.[0]?.trim() : undefined)
-  const seat: OpeningSeat = {}
-  if (pcLabel && pcLabel !== PICK_DEFAULT_SEAT) {
-    if (pcLabel === PICK_WANDERER || customName) {
-      seat.customName = customName || '路人'
-    } else {
-      const pcs = playableCharacters(canon)
-      const hit = pcs.find((id) => {
-        const card = canon.characters[id]
-        return pcLabel === id || pcLabel === `${card?.name} (${id})` || pcLabel === card?.name
-      })
-      if (hit) seat.pc = hit
-    }
+export function travelerQuestion(screen: 1 | 2 = 1): BootAsk {
+  const questions = [
+    { id: 'boot_name', header: '称呼', question: '你在这个时代怎么自称？不要写品级或进度。' },
+    { id: 'boot_age', header: '年龄', question: '外表年龄？一个数字或「约二十」。' },
+    { id: 'boot_vocation', header: '职业出身', question: '出身或眼下营生？如说书人、县衙书办、镖师、农户。' },
+    { id: 'boot_origin', header: '来历', question: '对外怎么解释自己？如离魂失忆、外乡投亲。不要编完整地球履历。' },
+    { id: 'boot_birthplace', header: '出生地', question: '这个时代的籍贯或落脚处？如定江府城余巷、岳江府、宁州乡野。' },
+    { id: 'boot_ties', header: '人物关系', question: '开场已认识谁？没有就写「无」。可点丁家、许长安、宵明弟子，两条线才可能相交。' },
+  ]
+  return { questions: screen === 1 ? questions.slice(0, 3) : questions.slice(3, 6) }
+}
+
+export function mergeBootAnswers(...cards: BootAnswer[]): BootAnswer {
+  return { answers: cards.flatMap((card) => card.answers) }
+}
+
+function field(answer: BootAnswer, id: string): string {
+  const hit = answer.answers.find((a) => a.id === id)
+  return (hit?.custom ?? hit?.selected?.[0] ?? '').trim()
+}
+
+export function resolveSeating(answer: BootAnswer, canon: import('../kernel/types.ts').Canon, traveler?: BootAnswer): OpeningSeat {
+  const modeLabel = field(answer, 'boot_mode')
+  const sceneLabel = field(answer, 'boot_scene')
+  const dingjiang = canon.meta.id === 'jzdh-dingjiang'
+  const easy = modeLabel === PICK_EASY_DING || modeLabel === PICK_DEFAULT_SEAT || !modeLabel
+  if (easy && modeLabel !== PICK_CUSTOM_TRAVELER) {
+    return dingjiang
+      ? { mode: 'easy', pc: 'ding-songyan', scene: canon.meta.entry_scene }
+      : { mode: 'easy' }
   }
+  const seat: OpeningSeat = { mode: 'custom' }
   if (sceneLabel && sceneLabel !== PICK_DEFAULT_SEAT && playableScenes(canon).includes(sceneLabel)) {
     seat.scene = sceneLabel
   }
+  const name = traveler ? field(traveler, 'boot_name') : ''
+  seat.customName = name || '路人'
+  if (traveler) {
+    seat.age = field(traveler, 'boot_age') || undefined
+    seat.vocation = field(traveler, 'boot_vocation') || undefined
+    seat.origin = field(traveler, 'boot_origin') || undefined
+    seat.birthplace = field(traveler, 'boot_birthplace') || undefined
+    seat.ties = field(traveler, 'boot_ties') || undefined
+  }
   return seat
+}
+
+export function seatingNeedsTraveler(seat: OpeningSeat): boolean {
+  return seat.mode === 'custom'
 }
 
 export async function openRuntime(opts: {
