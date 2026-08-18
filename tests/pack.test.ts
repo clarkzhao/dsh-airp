@@ -67,3 +67,32 @@ test('validatePack reports illegal condition node', async () => {
   assert.equal(result.ok, false)
   assert.ok(result.diagnostics.some((d) => d.code === 'BAD_CONDITION'))
 })
+
+test('validatePack warns on progress in a character card and missing commission', () => {
+  const canon = {
+    meta: { id: 't', title: 't', loreBudgetChars: 4000, opening: { present: ['klein'], revealed: ['axioms'] } },
+    index: { checks: [], characters: ['klein'], lore: ['axioms'] },
+    checks: {},
+    characters: {
+      klein: { id: 'klein', name: '克莱恩', keys: [], body: '当前序列 8，消化 0.9。' },
+    },
+    lore: { axioms: { key: 'axioms', body: '短。' } },
+    guarded: [],
+  } satisfies Canon
+  const diags = validatePack(canon)
+  assert.ok(diags.some((d) => d.code === 'PROGRESS_IN_CARD' && d.severity === 'warning'))
+  assert.ok(diags.some((d) => d.code === 'MISSING_COMMISSION' && d.severity === 'warning'))
+})
+
+test('validatePack rejects lore over budget as a hard error', () => {
+  const canon = {
+    meta: { id: 't', title: 't', loreBudgetChars: 8 },
+    index: { checks: [], characters: [], lore: ['axioms'] },
+    checks: {},
+    characters: {},
+    lore: { axioms: { key: 'axioms', body: '这是一条超预算的设定。' } },
+    guarded: [],
+  } satisfies Canon
+  const diags = validatePack(canon)
+  assert.ok(diags.some((d) => d.code === 'LORE_BUDGET' && (d.severity ?? 'error') === 'error'))
+})

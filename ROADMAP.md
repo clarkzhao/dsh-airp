@@ -27,8 +27,9 @@
 
 ## 下一步（v0.2）
 
-- 包清单卡显示 title / license / 作者，而不是只有目录名
-- `pack_validate` 检查 lore 预算、一条一概念、角色卡误写进度
+- [x] 包清单卡显示 title / license / 来源
+- [x] `pack_validate` 检查 lore 预算、一条一概念、角色卡误写进度、缺委托
+- [x] 开场 `present` 与 `roster` 分离；IC 按名字选对手，不误伤在场盟友
 - 创造者写完后一键「用这个包开一局消费者会话」
 - 社区包模板仓（只含 `pack.yaml` 骨架 + CI 调 `pack_validate`）
 

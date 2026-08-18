@@ -3,9 +3,24 @@ import { basename, join } from 'node:path'
 import yaml from 'js-yaml'
 import { DEFAULT_GUARDED, type Canon, type CharacterCard, type CheckDef, type Json, type LoreDoc, type PackMeta, type Predicate, type WorldState } from '../kernel/types.ts'
 
+export type PackDiagnosticCode =
+  | 'MISSING_FILE'
+  | 'BAD_YAML'
+  | 'BAD_POINTER'
+  | 'MISSING_CARD'
+  | 'BAD_CONDITION'
+  | 'GUARDED_IN_FACT_SCHEMA'
+  | 'LORE_BUDGET'
+  | 'PROGRESS_IN_CARD'
+  | 'MULTI_CONCEPT'
+  | 'REVEALED_OVERFLOW'
+  | 'MISSING_COMMISSION'
+  | 'OPENING_ABSENT'
+
 export interface PackDiagnostic {
-  code: 'MISSING_FILE' | 'BAD_YAML' | 'BAD_POINTER' | 'MISSING_CARD' | 'BAD_CONDITION' | 'GUARDED_IN_FACT_SCHEMA'
+  code: PackDiagnosticCode
   message: string
+  severity?: 'error' | 'warning'
 }
 
 export interface PackLoadResult {
@@ -73,8 +88,14 @@ export async function loadPack(dir: string): Promise<PackLoadResult> {
 
   const canon: Canon = { meta, index: index ?? { checks: [], characters: [], lore: [] }, checks, characters, lore, guarded }
   diagnostics.push(...validatePack(canon))
-  return { ok: diagnostics.length === 0, canon, diagnostics }
+  return { ok: !diagnostics.some(isError), canon, diagnostics }
 }
+
+export function isError(diag: PackDiagnostic): boolean {
+  return (diag.severity ?? 'error') === 'error'
+}
+
+const PROGRESS_IN_CARD = /消化\s*[0-9.]|失控\s*[0-9.]|sequence\s*[:=]\s*\d|digest\s*[:=]|lose_control\s*[:=]|当前序列|当前品级|进度\s*[0-9.]/
 
 export function validatePack(canon: Canon): PackDiagnostic[] {
   const out: PackDiagnostic[] = []
@@ -83,6 +104,12 @@ export function validatePack(canon: Canon): PackDiagnostic[] {
   }
   for (const id of canon.index.checks ?? []) {
     if (!canon.checks[id]) out.push({ code: 'MISSING_FILE', message: `index check ${id} missing` })
+  }
+  for (const key of canon.index.lore ?? []) {
+    if (!canon.lore[key]) out.push({ code: 'MISSING_FILE', message: `index lore ${key} missing` })
+  }
+  for (const id of [...(canon.meta.opening?.present ?? []), ...(canon.meta.opening?.roster ?? [])]) {
+    if (!canon.characters[id]) out.push({ code: 'OPENING_ABSENT', message: `opening character ${id} has no card` })
   }
   for (const check of Object.values(canon.checks)) {
     if (check.condition) out.push(...validatePredicate(check.condition, `check ${check.id}`))
@@ -95,6 +122,45 @@ export function validatePack(canon: Canon): PackDiagnostic[] {
     if (check.kind === 'generic' && 'fact_schema' in check) {
       out.push({ code: 'GUARDED_IN_FACT_SCHEMA', message: `${check.id} must not declare a fact schema` })
     }
+  }
+  const budget = canon.meta.loreBudgetChars ?? 4000
+  for (const doc of Object.values(canon.lore)) {
+    if (doc.body.length > budget) {
+      out.push({ code: 'LORE_BUDGET', message: `lore ${doc.key} is ${doc.body.length} chars, budget ${budget}` })
+    }
+    const headings = doc.body.match(/^#{1,3}\s+/gm)
+    if ((headings?.length ?? 0) > 2) {
+      out.push({
+        code: 'MULTI_CONCEPT',
+        severity: 'warning',
+        message: `lore ${doc.key} has ${headings!.length} headings; split into one concept per file`,
+      })
+    }
+  }
+  for (const card of Object.values(canon.characters)) {
+    if (PROGRESS_IN_CARD.test(card.body)) {
+      out.push({
+        code: 'PROGRESS_IN_CARD',
+        severity: 'warning',
+        message: `character ${card.id} body looks like live progress; keep numbers in State`,
+      })
+    }
+  }
+  const revealed = canon.meta.opening?.revealed ?? []
+  if (revealed.length > 6) {
+    out.push({
+      code: 'REVEALED_OVERFLOW',
+      severity: 'warning',
+      message: `opening.revealed has ${revealed.length} keys; keep axioms + scene + commission`,
+    })
+  }
+  const hasCommission = Object.keys(canon.lore).some((key) => key.includes('commission'))
+  if (!hasCommission) {
+    out.push({
+      code: 'MISSING_COMMISSION',
+      severity: 'warning',
+      message: 'no lore key containing "commission"; play boot will have no opening job',
+    })
   }
   return out
 }
@@ -124,8 +190,11 @@ export function initialState(canon: Canon, seed: string): WorldState {
   const opening = canon.meta.opening
   const present = opening?.present
     ?? canon.index.characters.filter((id) => canon.characters[id] && !canon.characters[id]!.provisional)
+  const roster = new Set([...present, ...(opening?.roster ?? [])])
   const characters: WorldState['characters'] = {}
-  for (const [id, card] of Object.entries(canon.characters)) {
+  for (const id of roster) {
+    const card = canon.characters[id]
+    if (!card) continue
     characters[id] = openingCharacterState(canon, card)
   }
   return {

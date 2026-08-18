@@ -7,7 +7,7 @@ import type { Json } from './kernel/types.ts'
 import { receiptText } from './host/translate.ts'
 import { HostRuntime } from './host/runtime.ts'
 import { bootQuestionFromRefs, isAskCancelled, isAuthorPreset, isPlayPreset, openRuntime, pathQuestion, PICK_NEW_PACK, presetFromSession, resolveBootChoice, resolvePathAnswer, sessionIsBlank, shouldBootStory } from './host/boot.ts'
-import { expandUserPath, loadCatalog, matchTags, resolvePackDir, tagsFromMeta, userPacksDir, type PackRef } from './pack/catalog.ts'
+import { expandUserPath, loadCatalog, matchTags, resolveIcActors, resolvePackDir, tagsFromMeta, userPacksDir, type PackRef } from './pack/catalog.ts'
 import { loadPack } from './pack/pack.ts'
 import { scaffoldPack } from './pack/scaffold.ts'
 
@@ -190,7 +190,11 @@ export function apply(ctx: Context, config: Config): void {
             ok: loaded.ok,
             packId: loaded.canon?.meta.id ?? packId ?? '',
             dir,
-            diagnostics: loaded.diagnostics.map((d) => ({ code: d.code, message: d.message })),
+            diagnostics: loaded.diagnostics.map((d) => ({
+              code: d.code,
+              message: d.message,
+              severity: d.severity ?? 'error',
+            })),
           }
         }
       }
@@ -369,8 +373,9 @@ export function apply(ctx: Context, config: Config): void {
     if (tags.length === 0) return next()
     try {
       const rt = await loadRuntime(String(payload.agent.id))
-      const present = rt.snapshot().state.present
-      const actors: Record<string, string> = present.length >= 2 ? { attacker: present[0]!, defender: present[1]! } : {}
+      const snap = rt.snapshot()
+      const known = Object.keys(snap.state.characters)
+      const actors = resolveIcActors(text, known.length ? known : snap.state.present, rt.canon.characters)
       const out = rt.dispatch({ kind: 'ic', tags, actors })
       if (out.forced && out.result.ok) {
         payload.agent.inject({
@@ -384,8 +389,8 @@ export function apply(ctx: Context, config: Config): void {
 }
 
 export { WorldKernel } from './kernel/world-kernel.ts'
-export { loadPack, validatePack, initialState } from './pack/pack.ts'
-export { loadCatalog, matchTags, tagsFromMeta, userPacksDir } from './pack/catalog.ts'
+export { loadPack, validatePack, initialState, isError } from './pack/pack.ts'
+export { loadCatalog, matchTags, resolveIcActors, tagsFromMeta, userPacksDir } from './pack/catalog.ts'
 export { intentFromTool, intentFromCommand, toolsFor } from './host/translate.ts'
 export { HostRuntime } from './host/runtime.ts'
 export { shouldBootStory, resolveBootChoice, resolvePathAnswer } from './host/boot.ts'

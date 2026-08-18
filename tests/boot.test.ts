@@ -84,6 +84,9 @@ test('boot card lists dingjiang demo and author can pick new pack', () => {
   assert.ok(labels.includes(BUNDLED_TINGEN))
   assert.ok(labels.includes(BUNDLED_JZDH))
   assert.ok(labels.some((label) => label.includes('my-pack')))
+  const mine = q.questions[0]!.options!.find((o) => o.label.includes('my-pack'))
+  assert.match(mine?.description ?? '', /community/)
+  assert.match(mine?.description ?? '', /~\/.dsh\/airp-packs/)
   assert.deepEqual(resolveBootChoice({ answers: [{ id: 'boot_pack', selected: [BUNDLED_JZDH] }] }), {
     kind: 'bundled',
     packId: 'jzdh-dingjiang',

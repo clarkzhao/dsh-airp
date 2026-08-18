@@ -53,6 +53,7 @@ lore/*.md                 # 设定条目，一个文件一个概念
 - 讲三件事：**看得见什么**（场景）、**有什么规矩**（该地规则/气氛）、**状态指针**（`facts.*`，供 check 引用）。
 - 文件名 = 触发词，起名要和索引、正文一一对应（`tingen.md` ↔ `scenes: tingen.blackthorn`）。
 - 地点被 `present` 激活时，模型自己会取；不需要写「当玩家进入时」的触发条件——那是扫描器思维。
+- 开场在场只写此刻能说话的人。对抗对象放 `opening.roster`：进 State，但不站在开场。IC 点到名字才会拉上场。
 
 ### 2.3 机制（如 `fool-s9-s8.md`）
 
@@ -87,7 +88,7 @@ sequence_declared: 9            # 对外声明的身份，不是当前真实进�
 
 ### 2.6 预算与命名铁律
 
-- 每条 lore ≤ `loreBudgetChars`（默认 4000 字）。超了引擎直接 `BUDGET` 拒绝，不会悄悄截断——**测试时用 `pack_validate` 和试玩自测**。
+- 每条 lore ≤ `loreBudgetChars`（默认 4000 字）。超了引擎直接 `BUDGET` 拒绝，不会悄悄截断。`pack_validate` 在装载期也会报 `LORE_BUDGET`（error）；角色卡写进度、缺委托、revealed 过多是 warning，包仍能加载。
 - `index.yaml` 常驻，按 token 算比 lore 贵一个量级：只列名字和清单，不写描述。
 - 一条 lore 一个概念：触发一次只注入一件事。两个概念就拆两个文件。
 

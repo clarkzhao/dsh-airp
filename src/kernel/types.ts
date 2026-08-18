@@ -63,6 +63,8 @@ export interface LoreDoc {
 
 export interface PackOpening {
   present?: string[]
+  /** Characters instantiated in State but not on-stage at boot. */
+  roster?: string[]
   revealed?: string[]
   facts?: WorldState['facts']
 }

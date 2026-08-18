@@ -1,6 +1,6 @@
 import type { Canon, Intent, StoryEvent, TurnOptions, TurnResult, WorldState } from '../kernel/types.ts'
 import { WorldKernel } from '../kernel/world-kernel.ts'
-import { initialState, validatePack, type PackDiagnostic } from '../pack/pack.ts'
+import { initialState, isError, validatePack, type PackDiagnostic } from '../pack/pack.ts'
 import { intentFromCommand, intentFromTool, receiptText, toolsFor, type PlayRole } from './translate.ts'
 
 export type HostRequest =
@@ -87,9 +87,14 @@ export class HostRuntime {
     }
     if (name === 'pack_validate') {
       const diagnostics = validatePack(this.canon)
+      const ok = !diagnostics.some(isError)
       return {
-        ok: diagnostics.length === 0,
-        text: JSON.stringify({ ok: diagnostics.length === 0, packId: this.canon.meta.id, diagnostics }),
+        ok,
+        text: JSON.stringify({
+          ok,
+          packId: this.canon.meta.id,
+          diagnostics: diagnostics.map((d) => ({ ...d, severity: d.severity ?? 'error' })),
+        }),
         result: { ok: true, state: this.state, receipt: { kind: 'empty' }, events: [] },
         sessionId: this.id,
         diagnostics,
@@ -128,6 +133,7 @@ export class HostRuntime {
   }
 
   private forceIc(tags: string[], actors: Record<string, string>, u?: number): HostResponse {
+    this.stageActors(Object.values(actors))
     const forced = this.kernel.match(this.state, tags, actors)
     if (forced.length === 0) {
       return {
@@ -157,6 +163,15 @@ export class HostRuntime {
       result: { ok: true, state: this.state, receipt: { kind: 'empty' }, events: [] },
       sessionId: this.id,
     }
+  }
+
+  private stageActors(ids: string[]): void {
+    const next = [...this.state.present]
+    for (const id of ids) {
+      if (!id || !this.state.characters[id] || next.includes(id)) continue
+      next.push(id)
+    }
+    if (next.length !== this.state.present.length) this.state.present = next
   }
 
   private applyIntent(intent: Intent, options: TurnOptions = {}): HostResponse {

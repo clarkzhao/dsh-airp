@@ -51,6 +51,31 @@ export function matchTags(text: string, lexicon: Record<string, string[]>): stri
   return tags
 }
 
+export function resolveIcActors(
+  text: string,
+  present: string[],
+  characters: Record<string, { id: string; name?: string; keys?: string[] }>,
+): Record<string, string> {
+  const mentioned = Object.keys(characters).filter((id) => aliasesHit(text, characters[id] ?? { id }))
+  const pc = present[0]
+  const actors: Record<string, string> = {}
+  if (pc) {
+    actors.attacker = pc
+    actors.actor = pc
+  } else if (mentioned[0]) {
+    actors.attacker = mentioned[0]
+    actors.actor = mentioned[0]
+  }
+  const defender = mentioned.find((id) => id !== actors.attacker)
+  if (defender) actors.defender = defender
+  return actors
+}
+
+function aliasesHit(text: string, card?: { id?: string; name?: string; keys?: string[] }): boolean {
+  if (!card) return false
+  return [card.id, card.name, ...(card.keys ?? [])].some((alias) => typeof alias === 'string' && alias.length > 0 && text.includes(alias))
+}
+
 export async function scanPackDir(dir: string, origin: PackOrigin): Promise<PackRef | undefined> {
   const loaded = await loadPack(dir)
   if (!loaded.ok || !loaded.canon) return undefined

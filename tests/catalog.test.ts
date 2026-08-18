@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { test } from 'node:test'
-import { loadCatalog, matchTags, tagsFromMeta } from '../src/pack/catalog.ts'
+import { loadCatalog, matchTags, resolveIcActors, tagsFromMeta } from '../src/pack/catalog.ts'
 import { loadPack } from '../src/pack/pack.ts'
 import { scaffoldPack } from '../src/pack/scaffold.ts'
 
@@ -51,4 +51,20 @@ test('matchTags uses pack lexicon instead of hardcoded LOTM words', () => {
     tags: { powang: ['破妄', '烛照'], contest: ['对抗'] },
   }))
   assert.deepEqual(jzdh, ['powang'])
+})
+
+test('resolveIcActors prefers a named opponent over the second present ally', () => {
+  const actors = resolveIcActors('乱葬岗的蛾人扑过来，我要对抗', ['ding-songyan', 'xu-changan'], {
+    'ding-songyan': { id: 'ding-songyan', name: '丁松言', keys: ['丁二郎'] },
+    'xu-changan': { id: 'xu-changan', name: '许长安', keys: ['许大郎'] },
+    'er-ren': { id: 'er-ren', name: '乱葬岗的蛾人', keys: ['蛾人'] },
+  })
+  assert.equal(actors.attacker, 'ding-songyan')
+  assert.equal(actors.defender, 'er-ren')
+  const idle = resolveIcActors('我和许长安闲聊', ['ding-songyan', 'xu-changan'], {
+    'ding-songyan': { id: 'ding-songyan', name: '丁松言', keys: ['丁二郎'] },
+    'xu-changan': { id: 'xu-changan', name: '许长安', keys: ['许大郎'] },
+  })
+  assert.equal(idle.attacker, 'ding-songyan')
+  assert.equal(idle.defender, 'xu-changan')
 })

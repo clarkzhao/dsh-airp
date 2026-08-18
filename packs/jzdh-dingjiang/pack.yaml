@@ -20,7 +20,8 @@ tags:
   powang: [破妄, 烛照, 鉴别, 真伪, 阴眼, 识破]
   cost: [代价, 反噬, 侵蚀, 入局, 阴气, 蛾种近身]
 opening:
-  present: [ding-songyan, xu-changan, er-ren]
+  present: [ding-songyan, xu-changan]
+  roster: [er-ren]
   revealed: [axioms, jzdh-world, jzdh-dingjiang, jzdh-wushu, jzdh-commission]
   facts:
     season: 夏

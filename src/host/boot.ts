@@ -72,6 +72,14 @@ export function looksLikePackPath(value: string): boolean {
   return text.startsWith('/') || text.startsWith('~') || text.includes('pack.yaml') || text.includes('\\') || /^[A-Za-z]:[\\/]/.test(text)
 }
 
+function optionBlurb(pack: PackRef | undefined, fallback: string): string {
+  if (!pack) return fallback
+  const bits = [pack.description || fallback]
+  if (pack.license) bits.push(pack.license)
+  if (pack.origin === 'user') bits.push('~/.dsh/airp-packs')
+  return bits.join(' · ')
+}
+
 function typedPath(item: BootAnswer['answers'][number] | undefined): string {
   const custom = item?.custom?.trim()
   if (custom) return custom
@@ -86,20 +94,21 @@ export function bootQuestion(packIds: string[]): BootAsk {
 export function bootQuestionFromRefs(packs: PackRef[]): BootAsk {
   const seen = new Set<string>()
   const options: Array<{ label: string; description?: string }> = [
-    { label: BUNDLED_TINGEN, description: '立刻进入黑荆棘安保公司，读委托开玩。官方 demo。' },
+    { label: BUNDLED_TINGEN, description: optionBlurb(packs.find((pack) => pack.id === 'lotm-tingen'), '立刻进入黑荆棘安保公司，读委托开玩。官方 demo。') },
   ]
   seen.add('lotm-tingen')
   if (packs.some((pack) => pack.id === 'jzdh-dingjiang')) {
-    options.push({ label: BUNDLED_JZDH, description: '大荒定江府，当康庙接「失踪的老贼」。官方 demo。' })
+    options.push({ label: BUNDLED_JZDH, description: optionBlurb(packs.find((pack) => pack.id === 'jzdh-dingjiang'), '大荒定江府，当康庙接「失踪的老贼」。官方 demo。') })
     seen.add('jzdh-dingjiang')
   }
   for (const pack of packs) {
     if (seen.has(pack.id)) continue
     seen.add(pack.id)
     const where = pack.origin === 'user' ? '~/.dsh/airp-packs' : pack.origin === 'custom' ? pack.dir : 'packs/'
+    const license = pack.license ? ` · ${pack.license}` : ''
     options.push({
       label: `${pack.title} (${pack.id})`,
-      description: `${where} · ${pack.description ?? pack.id}`,
+      description: `${pack.description ?? pack.id} · ${where}${license}`,
     })
   }
   options.push({ label: PICK_CUSTOM, description: '下一屏粘贴含 pack.yaml 的目录。卡片底部也可直接输入路径。' })
