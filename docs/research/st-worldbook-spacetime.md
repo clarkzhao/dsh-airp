@@ -51,6 +51,25 @@
 
 时间与地点的一致性要靠**作者自己维护**，宿主不给。
 
+### 地图：核心没有，扩展和本子自己做
+
+世界书条目 schema（`world-info.js` `newWorldInfoEntryDefinition` 约 4010–4045）**没有** `map` / `x` / `y` / `origin` / `cell` 字段。核心只扫关键词、插提示词。
+
+[Issue #4731](https://github.com/SillyTavern/SillyTavern/issues/4731) 要给 lorebook 加 LoreMap 坐标。维护者回复（未合入，且标 Stale）：
+
+- Wolfsblvt：这更像 **extension territory**。多数人只用 WI 往主提示词加段子，地点对核心不重要。
+- Cohee1207：指向第三方 [SillyTavern-Codex](https://github.com/LenAnderson/SillyTavern-Codex)，不是核心。
+
+社区自己补的是**另一套 UI**，不是 World Info 引擎：
+
+| 东西 | 是什么 | 不是什么 |
+|---|---|---|
+| [Silly-Map](https://github.com/Jeka201216/Silly-Map) | 第三方扩展：自己的格子/房间、读聊天猜人在哪、给模型塞房间描述 | 不进 `world-info.js`；地图文件放扩展自己的 `assets/locations/` |
+| [Lorebook Studio](https://github.com/hype-hosting/SillyTavern-Lorebook-Studio) | 条目之间的 3D **节点图**（递归/手连） | 不是地理距离 |
+| 法环等热门包 | 地点条目写「South of / Connected to」 | 无坐标、无旅行结算 |
+
+结论：ST **没有**地图架构。有地图的本子是作者散文，或另装扩展。AIRP 的 `places` 边图是引擎层；pack 只填边，不要学 ST 去画像素格子。
+
 ### 无类型变量：setvar/getvar 不可信
 
 `public/scripts/variables.js`（本地）：
