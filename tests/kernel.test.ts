@@ -371,6 +371,20 @@ test('lore success does not mutate state or emit events', () => {
   assert.deepEqual(result.state, before)
 })
 
+test('lore_get serves a character card body by id', () => {
+  const k = kernel()
+  const result = k.turn(state(), { type: 'lore', key: 'klein' })
+  assert.equal(result.ok, true)
+  if (!result.ok) return
+  assert.equal(result.receipt.kind, 'lore')
+  if (result.receipt.kind !== 'lore') return
+  assert.match(result.receipt.body, /口吻/)
+  const missing = k.turn(state(), { type: 'lore', key: 'no-such-card' })
+  assert.equal(missing.ok, false)
+  if (missing.ok) return
+  assert.equal(missing.code, 'UNKNOWN_LORE')
+})
+
 test('prior fact does not change next check u', () => {
   const k = kernel()
   const intent = {

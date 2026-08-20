@@ -55,10 +55,12 @@ export class WorldKernel {
 
   private lore(state: WorldState, key: string): TurnResult {
     const doc = this.canon.lore[key]
-    if (!doc) return fail(state, 'UNKNOWN_LORE', `unknown lore key ${key}`)
+    const card = !doc ? this.canon.characters[key] : undefined
+    const body = doc?.body ?? card?.body
+    if (!body) return fail(state, 'UNKNOWN_LORE', `unknown lore key ${key}`)
     const budget = this.canon.meta.loreBudgetChars ?? Infinity
-    if (doc.body.length > budget) return fail(state, 'BUDGET', `lore ${key} exceeds ${budget} chars`)
-    return ok(state, { kind: 'lore', key, body: doc.body }, [])
+    if (body.length > budget) return fail(state, 'BUDGET', `lore ${key} exceeds ${budget} chars`)
+    return ok(state, { kind: 'lore', key, body }, [])
   }
 
   private runCheck(state: WorldState, checkId: string, actors: Record<string, string>, options: TurnOptions, extra?: Patch): TurnResult {
