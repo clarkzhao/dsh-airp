@@ -199,8 +199,8 @@ export function validatePack(canon: Canon): PackDiagnostic[] {
       if (!known.has(to)) {
         out.push({ code: 'BAD_PLACE', severity: 'warning', message: `places.${from} → ${to} is not an index scene` })
       }
-      if (edge?.need && !/^(mobility)\s*(>=|>|<=|<|=)\s*-?\d+(?:\.\d+)?$/.test(edge.need.trim())) {
-        out.push({ code: 'BAD_PLACE', message: `places.${from} → ${to} need must be mobility>=N` })
+      if (edge?.need && !/^(mobility)\s*(>=|>|<=|<|=)\s*-?\d+(?:\.\d+)?$/.test(edge.need.trim()) && !/^(?:facts\.)?[A-Za-z_][\w]*\s*(!=|=)\s*.+$/.test(edge.need.trim())) {
+        out.push({ code: 'BAD_PLACE', message: `places.${from} → ${to} need must be mobility>=N or facts.k=v` })
       }
     }
   }
