@@ -12,7 +12,7 @@
 
 AIRP = 深 Module `WorldKernel`（`match` / `turn`）+ 浅 DSH Host Adapter。LLM 提案和叙述；Kernel 把 State 从 T 写成 T+1。
 
-Preset：`airp-play` / `airp-author`。官方 demo 是夹具。用户包：`~/.dsh/airp-packs/<id>/`。https://github.com/clarkzhao/dsh-airp。长期目标：**打出基本可用 tag `0.1.0`**（边界见 [`ROADMAP.md`](ROADMAP.md)）。`main`：PR、线性、禁止 force-push。
+Preset：`airp-play` / `airp-author`。官方 demo 是示例包，不是产品剧情。用户包：`~/.dsh/airp-packs/<id>/`。https://github.com/clarkzhao/dsh-airp。长期目标：**打出基本可用 tag `0.1.0`**（边界见 [`ROADMAP.md`](ROADMAP.md)）。`main`：PR、线性、禁止 force-push。
 
 ## 命令
 
@@ -56,7 +56,7 @@ turn(state, intent, options?) → TurnResult   # { ok, state, receipt, events }
 | 鉴定、guard、travel need、lore 预算 | `src/kernel/` | ST 扫描器 |
 | 工具名、brief、boot、replay、座位 | `src/host/` `src/index.ts` | 新 play 工具；play 里 bash / `cordis_*` |
 | 装载、校验、scaffold、八问 | `src/pack/` | 创造流程写进 Kernel |
-| 官方夹具坏了 | `packs/lotm-tingen` `packs/jzdh-dingjiang` | 借机加全书；commit `audit/` |
+| 官方示例坏了 | `packs/lotm-tingen` `packs/jzdh-dingjiang` | 借机加全书；commit `audit/` |
 | 自己的世界 | `~/.dsh/airp-packs/` | PR 进 `packs/` |
 | 合同、写包、贡献 | `docs/` `CONTRIBUTING.md` | 粘进本文件 |
 

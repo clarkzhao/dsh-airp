@@ -363,7 +363,7 @@ Adapter 测试只覆盖：工具名译成 intent、play 掩码看不见 validate
 
 | 阶段 | 做 | 不做 |
 |---|---|---|
-| 0.1.0 | Kernel + Host + 两份夹具可玩一晚；`present` 已 guard | Worldsmith、市场、生图、全书、`canon.edit`、日历钟、`UNCAUSED_CLAIM` |
+| 0.1.0 | Kernel + Host + 两份官方示例可玩一晚；`present` 已 guard | Worldsmith、市场、生图、全书、`canon.edit`、日历钟、`UNCAUSED_CLAIM` |
 | 之后 | Worldsmith、provisional 晋升、因果抽查阻断、收据去骰 | SaaS |
 | 更后 | 语义迁移 ST 资产、可选日历钟 | 把 ST 请回宿主 |
 

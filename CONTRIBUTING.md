@@ -16,7 +16,7 @@
 | `authoring` | 八问、scaffold、校验文案、交接卡 |
 | `engine` | Kernel / 鉴定 / `/retry` |
 | `docs` | README / 写包指南看不懂 |
-| `demo` | 官方夹具坏了（委托不可玩）。不要借机加全书剧情
+| `demo` | 官方示例坏了（委托不可玩）。不要借机加全书剧情
 
 社区包用 `pack` + 仓库/路径，不要把 zip 糊进本仓。
 

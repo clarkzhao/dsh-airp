@@ -2,11 +2,11 @@
 
 不是承诺表。用来告诉社区「现在能提什么 issue、不该提什么 PR」。
 
-**主线是引擎 + 两个 preset。** `packs/lotm-tingen` 和 `packs/jzdh-dingjiang` 是官方 demo / 测试夹具，用来证明 interface，不是产品剧情线。未来世界由生产者自己产出，放 `~/.dsh/airp-packs/` 或独立仓库。不要把「把定江读完 / 把设定集写厚」当成引擎迭代。
+**主线是引擎 + 两个 preset。** `packs/lotm-tingen` 和 `packs/jzdh-dingjiang` 是官方示例包，用来证明引擎能玩，不是产品剧情线。未来世界由生产者自己产出，放 `~/.dsh/airp-packs/` 或独立仓库。不要把「把定江读完 / 把设定集写厚」当成引擎迭代。
 
 ## 现在：第一个基本可用版本 **0.1.0**
 
-`package.json` 已是 `0.1.0`。Git tag `0.1.0` 在边界清完、夹具可玩、文档对得上代码时打。**0.1.0 是引擎 + 两个 preset + 两份夹具能诚实玩一晚**，不是全书、不是 Worldsmith、不是市场。
+`package.json` 已是 `0.1.0`。Git tag `0.1.0` 在边界清完、示例包可玩、文档对得上代码时打。**0.1.0 是引擎 + 两个 preset + 两份官方示例能诚实玩一晚**，不是全书、不是 Worldsmith、不是市场。
 
 **里面有**
 
@@ -15,7 +15,7 @@
 - 座位：轻松默认线 vs 自拟 `wanderer`（场上只有穿越者）
 - Pack 数据：YAML 离场、`places.need`（`mobility>=N` 或 `facts.k=v` / `k!=v`）、`lore_get` 可读卡 body
 - 创造者：八问 → scaffold → `pack_validate` → 交接卡（不热切 preset）
-- 夹具：`lotm-tingen`、`jzdh-dingjiang`（委托脊柱，不是连载）
+- 官方示例：`lotm-tingen`、`jzdh-dingjiang`（一条开场委托能走完，不是连载）
 - 文档：`docs/engine.md`、`docs/worldbook-authoring.md`、[`AGENTS.md`](AGENTS.md)
 
 **外面没有（不要为了打 tag 再做）**
@@ -35,7 +35,7 @@
 - `engine`：Kernel 门禁、鉴定公式、事件回放、收据是否够消费者用
 - `authoring`：八问、scaffold、校验诊断、交接卡
 - `docs`：消费者装包 / 生产者交包看不懂
-- `demo`：夹具坏了（委托不可玩、预算爆、角色卡写了进度）——修夹具，不要借机加剧情
+- `demo`：官方示例坏了（委托不可玩、预算爆、角色卡写了进度）——修示例，不要借机加剧情
 
 不欢迎的 PR：
 
@@ -57,7 +57,7 @@
 2. **收据给玩家看** — 包的词，不泄漏 `p`/`u`；声称晋升但无 check → `UNCAUSED_CLAIM`（尚未做）。
 
 
-DoD：用 **scaffold 出来的新包**（不是定江）走完「接委托 → 一次对抗 → `/retry`」。夹具测试继续打 `TurnResult`，但新行为的回归夹具应是 `templates/community-pack` 的变体。
+DoD：用 **scaffold 出来的新包**（不是定江）走完「接委托 → 一次对抗 → `/retry`」。引擎单测继续打 `TurnResult`；新行为的回归用 `templates/community-pack` 的变体，不要只拿定江当证明。
 
 ## 生产者（`airp-author`）
 
@@ -116,7 +116,7 @@ Canon.pack.yaml
 
 生产者：只填边的 `beats` / `need`，不必写旅行引擎。`validate` 检查边指向已有 scene lore。
 
-## 夹具（demo，非主线）
+## 官方示例（demo，非主线）
 
 `lotm-tingen` / `jzdh-dingjiang` 只负责：
 
@@ -124,7 +124,7 @@ Canon.pack.yaml
 - Host 回归（brief 按包装配、IC 选对手、handoff）
 - 文档里的「看起来像什么」
 
-维护规则：委托脊柱坏了就修；设定集变厚不进 git 主线。`_extract.md` 与按章审计是作者工作稿，分别留在 pack 下划线文件 / 世界书目录，不进 `index.yaml`。不要为了夹具剧情给 Kernel 加神功专属 check。
+维护规则：开场委托走不通就修；设定集变厚不进 git 主线。`_extract.md` 与按章审计是作者工作稿，分别留在 pack 下划线文件 / 世界书目录，不进 `index.yaml`。不要为了示例剧情给 Kernel 加神功专属 check。
 
 ## 以后（0.1.0 之后，见 docs/engine.md §12）
 
