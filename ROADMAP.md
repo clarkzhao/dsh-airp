@@ -4,14 +4,27 @@
 
 **主线是引擎 + 两个 preset。** `packs/lotm-tingen` 和 `packs/jzdh-dingjiang` 是官方 demo / 测试夹具，用来证明 interface，不是产品剧情线。未来世界由生产者自己产出，放 `~/.dsh/airp-packs/` 或独立仓库。不要把「把定江读完 / 把设定集写厚」当成引擎迭代。
 
-## 现在（v0）
+## 现在：第一个基本可用版本 **0.1.0**
 
-- [x] `WorldKernel`：`match` / `turn`，双通道，事件溯源
-- [x] Host adapter：工具翻译、开局选包、`/retry` fork
-- [x] 开放包发现：bundled demo + `~/.dsh/airp-packs` + 自定义路径
-- [x] 创造者：ask-user 八问 + `pack_scaffold` + `pack_validate` + 交接卡
-- [x] 夹具：`lotm-tingen`、`jzdh-dingjiang`（只证明委托脊柱，不扩张成全书）
-- [x] 文档：`docs/engine.md`、`docs/worldbook-authoring.md`、ADR 0008–0011
+`package.json` 已是 `0.1.0`。Git tag `0.1.0` 在边界清完、夹具可玩、文档对得上代码时打。**0.1.0 是引擎 + 两个 preset + 两份夹具能诚实玩一晚**，不是全书、不是 Worldsmith、不是市场。
+
+**里面有**
+
+- `WorldKernel`：`match` / `turn`，双通道，事件在 Host log
+- Host：开局选包、常驻 `indexText`、IC 点名上场、`/retry` 回放（含换场 extra）
+- 座位：轻松默认线 vs 自拟 `wanderer`（场上只有穿越者）
+- Pack 数据：YAML 离场、`places.need`（`mobility>=N` 或 `facts.k=v` / `k!=v`）、`lore_get` 可读卡 body
+- 创造者：八问 → scaffold → `pack_validate` → 交接卡（不热切 preset）
+- 夹具：`lotm-tingen`、`jzdh-dingjiang`（委托脊柱，不是连载）
+- 文档：`docs/engine.md`、`docs/worldbook-authoring.md`、[`AGENTS.md`](AGENTS.md)
+
+**外面没有（不要为了 0.1.0 做）**
+
+- Worldsmith / `canon.edit` / play 里 mint 角色
+- ST 扫描器、宏、`{{setvar}}`、Silly-Map
+- 世界时钟、因果抽查阻断（`UNCAUSED_CLAIM`）、收据对玩家隐瞒 `p`/`u`
+- 官方 demo 写成全书；社区包 PR 进 `packs/`
+- play 里 bash / `cordis_*`
 
 欢迎的 issue：
 
@@ -113,13 +126,13 @@ DoD：夹具用 **模板包变体**（A→B 要 4 beat、mobility=0 被拒；mob
 
 维护规则：委托脊柱坏了就修；设定集变厚不进 git 主线。`_extract.md` 与按章审计是作者工作稿，分别留在 pack 下划线文件 / 世界书目录，不进 `index.yaml`。不要为了夹具剧情给 Kernel 加神功专属 check。
 
-## 以后（v1+，见 docs/engine.md §12）
+## 以后（0.1.0 之后，见 docs/engine.md §12）
 
 第二种作者或第二种编译源出现再谈：
 
 - Worldsmith（一句话 → check/lore，仍要人审）
 - `canon.edit` / provisional 晋升
 - ST 资产语义迁移
-- `present` seam / 世界时钟
+- 世界时钟；收据对玩家隐瞒掷骰数字
 
 明确不做：把 ST 请回宿主、SaaS 市场、生图引擎、在故事会话里热改 Cordis、把官方 demo 写成连载主线。

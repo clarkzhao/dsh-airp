@@ -12,7 +12,7 @@
 
 AIRP = 深 Module `WorldKernel`（`match` / `turn`）+ 浅 DSH Host Adapter。LLM 提案和叙述；Kernel 把 State 从 T 写成 T+1。
 
-Preset：`airp-play` / `airp-author`。官方 demo `packs/lotm-tingen`、`packs/jzdh-dingjiang` 是夹具。用户包：`~/.dsh/airp-packs/<id>/`。https://github.com/clarkzhao/dsh-airp（public）。`main`：PR、线性、禁止 force-push。本地可 commit。
+Preset：`airp-play` / `airp-author`。官方 demo 是夹具。用户包：`~/.dsh/airp-packs/<id>/`。https://github.com/clarkzhao/dsh-airp。长期目标：**打出基本可用 tag `0.1.0`**（边界见 [`ROADMAP.md`](ROADMAP.md)）。`main`：PR、线性、禁止 force-push。
 
 ## 命令
 
@@ -76,4 +76,4 @@ Play：`lore_get` `state_read` `check_match` `check_propose` `state_propose_fact
 
 ## 再读
 
-[`ROADMAP.md`](ROADMAP.md) · [`docs/glossary.md`](docs/glossary.md)
+[`ROADMAP.md`](ROADMAP.md)（0.1.0 边界）· [`docs/glossary.md`](docs/glossary.md)
