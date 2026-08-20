@@ -120,6 +120,18 @@ test('check_propose cannot smuggle present through the extra patch', async () =>
   assert.equal(res.ok, false)
   assert.match(res.text, /EXTRA_GUARDED/)
   assert.deepEqual(play.snapshot().state.present, before)
+  const descendant = play.dispatch({
+    kind: 'tool',
+    name: 'check_propose',
+    args: {
+      checkId: 'contest-wushu',
+      actors: { attacker: 'ding-songyan', defender: 'er-ren' },
+      patch: { 'present.0': '-ding-songyan' },
+    },
+  })
+  assert.equal(descendant.ok, false)
+  assert.match(descendant.text, /EXTRA_GUARDED/)
+  assert.deepEqual(play.snapshot().state.present, before)
 })
 
 test('dingjiang places allow temple to graveyard and block a hop with no edge', async () => {

@@ -94,18 +94,19 @@ export class HostRuntime {
    * Commission lore for the live brief. A pack may ship several commission
    * keys (e.g. one per seating mode); the one whose key mentions the current
    * `facts.play_mode` wins, otherwise the first commission key in index order.
-   * This keeps `id.includes('commission')` from silently picking a wrong
-   * (nondeterministic) first key when a pack has more than one commission.
+   * No commission → undefined, and loreBody returns ''.
    */
   private commissionKey(): string | undefined {
-    const keys = Object.keys(this.canon.lore).filter((id) => id.includes('commission')).sort()
+    const listed = (this.canon.index.lore ?? []).filter((id) => id.includes('commission') && this.canon.lore[id])
+    const keys = listed.length ? listed : Object.keys(this.canon.lore).filter((id) => id.includes('commission'))
     if (keys.length === 0) return undefined
     const mode = this.state.facts.play_mode
     if (typeof mode === 'string' && mode) {
-      const exact = keys.find((key) => key.includes(mode))
-      if (exact) return exact
+      const named = keys.find((key) => key.endsWith(`-commission-${mode}`) || key.endsWith(`commission-${mode}`))
+        ?? keys.find((key) => key.includes(mode))
+      if (named) return named
     }
-    return keys[0]!
+    return keys[0]
   }
 
   bootBrief(): string {

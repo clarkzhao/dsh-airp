@@ -103,6 +103,12 @@ test('live brief picks the commission lore for the seating mode', async () => {
   const customBrief = custom.bootBrief()
   assert.match(customBrief, /自拟/)
   assert.doesNotMatch(customBrief, /张睿/)
+  const missingMode = await openRuntime({
+    packsDir,
+    sessionId: 'comm-missing-mode',
+    choice: { kind: 'bundled', packId: 'jzdh-dingjiang' },
+  })
+  assert.match(missingMode.bootBrief(), /轻松丁松言|张睿|许长安/)
 })
 
 test('custom path loads that directory', async () => {
