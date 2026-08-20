@@ -85,6 +85,26 @@ test('live indexText follows scene after a travel check', async () => {
   assert.match(live, /commission=pending/)
 })
 
+test('live brief picks the commission lore for the seating mode', async () => {
+  const easy = await openRuntime({
+    packsDir,
+    sessionId: 'comm-easy',
+    choice: { kind: 'bundled', packId: 'jzdh-dingjiang' },
+    seat: { mode: 'easy' },
+  })
+  const easyBrief = easy.bootBrief()
+  assert.match(easyBrief, /轻松丁松言|张睿|许长安/)
+  const custom = await openRuntime({
+    packsDir,
+    sessionId: 'comm-custom',
+    choice: { kind: 'bundled', packId: 'jzdh-dingjiang' },
+    seat: { mode: 'custom', customName: '过路刀客' },
+  })
+  const customBrief = custom.bootBrief()
+  assert.match(customBrief, /自拟/)
+  assert.doesNotMatch(customBrief, /张睿/)
+})
+
 test('custom path loads that directory', async () => {
   const choice = resolveBootChoice({
     answers: [{ id: 'boot_pack', selected: [PICK_CUSTOM], custom: join(packsDir, 'lotm-tingen') }],
