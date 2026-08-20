@@ -4,6 +4,12 @@
 
 以**代码 + 本文件**为准。`docs/engine.md` §12 年表仍写「v0 没有 present port」——那是旧句；`present` 已在 `DEFAULT_GUARDED`，离场由 pack YAML 声明。
 
+## 原则
+
+1. **如无必要，勿增实体。** 不新开 play 工具、Intent 种类、Kernel port、世界名。先加深现有 Seam（`turn` / `match` / `indexText` / pack YAML）。一个 Adapter 不够开新 port。
+2. **Pack 与引擎分界不要混。** 世界书（pack）写：场景/委托/公理/角色口吻、check 公式与 `outcomes.apply`、`places` 边与 `need`。AIRP（本仓引擎）写：双通道门禁、鉴定 AST、旅行图的**泛化**谓词、座位、brief、replay。包专属剧情、地名、谁该离场，不进 `src/kernel/`。引擎缺口不靠 lore 散文假装修过。
+3. **体验测试优先于加代码。** (a) 用 subagent 分别扮 `airp-play` 消费者和 `airp-author` 创作者去跑、去体验。(b) 看轨迹里有没有世界不诚实（旧城规矩、幽灵在场、口头瞬移）。(c) 消费者觉得不对，先让创作者在权限内改 pack（YAML/MD、`pack_validate`）。(d) 创作者改不了（门禁、replay、座位、无工具可读卡）→ 给**本仓**提 `engine` issue，不要先改 Kernel 猜世界。
+
 ## 这是什么
 
 AIRP = 一个深 Module `WorldKernel`（`match` / `turn`）+ 一层浅 DSH Host Adapter。LLM 提案和叙述；Kernel 把 State 从 T 写成 T+1。
@@ -71,6 +77,7 @@ Play 工具：`lore_get` `state_read` `check_match` `check_propose` `state_propo
 
 ## 怎么测
 
+- **先体验，再单测。** 原则 3：play subagent 跑若干轮 → 轨迹不合理则 author 改 pack → 仍修不了再对本仓开 issue。官方 demo 当夹具体验可以；社区世界不要 PR 进 `packs/`。
 - `npm test`。夹具打 `TurnResult` / `PackDiagnostic`。
 - 新行为优先 `templates/community-pack` 变体或内存 Canon，不要往定江堆剧情断言。
 - 官方 demo 回归：委托脊柱、travel 边、custom 座位、`CHANNEL_VIOLATION`。
@@ -80,7 +87,8 @@ Issue 标签：`engine` / `pack` / `authoring` / `demo` / `docs`（见 [`CONTRIB
 ## 永远不要
 
 - 复刻 ST 31 字段扫描器、`{{setvar}}`、Silly-Map、群聊发言权当世界规则。
-- 在 Kernel 里写包专属逻辑。
+- 在 Kernel 里写包专属逻辑（原则 2）。消费者的坑直接改引擎而不先问创作者（原则 3）。
+- 为「可能用到」加工具或 port（原则 1）。
 - 在角色卡里写序列 / 消化 / 品级进度。
 - 把 `_extract.md` 编进 `index.yaml` 当运行时 Canon。
 - 直推或 force-push `main`。
