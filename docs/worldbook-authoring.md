@@ -55,7 +55,7 @@ lore/*.md                 # 设定条目，一个文件一个概念
 - 讲三件事：**看得见什么**（场景）、**有什么规矩**（该地规则/气氛）、**状态指针**（`facts.*`，供 check 引用）。
 - 文件名 = 触发词，起名要和索引、正文一一对应（`tingen.md` ↔ `scenes: tingen.blackthorn`）。
 - 地点被 `present` 激活时，模型自己会取；不需要写「当玩家进入时」的触发条件——那是扫描器思维。
-- 开场在场只写此刻能说话的人。对抗对象放 `opening.roster`：进 State，但不站在开场。IC 点到名字才会拉上场（`stageActors`）。闲聊要把 roster 里的人请上场：叙述里点名，或导演 `/gm present=+id :: 理由`。play **没有**「生成该地点新角色卡」工具；凭空造人是 Worldsmith / `canon.edit`，v0 不做。
+- 开场在场只写此刻能说话的人。对抗对象放 `opening.roster`：进 State，但不站在开场。要把已有卡请上场：叙述里点名（host `stageActors`），或导演 `/gm present=+id :: 理由`。play **没有**「生成该地点新角色卡」工具。需要新 NPC：开 `airp-author` 会话改 `characters/*.md` + `index.yaml`，`pack_validate` 后再新开 play。Worldsmith / `canon.edit` 边玩边造人，v0 不做。
 - 消费者开局先选模式：轻松默认主角，或自拟穿越者（填出身）。`entry_scene` / `opening.present` 是轻松档的样例；自拟档写 wanderer 卡，不抢原著底牌。`index.scenes` 是自拟落点。自拟档场上默认只有 wanderer（见 seating）；配角仍在 roster，点名再上场。
 
 ### 2.3 机制（如 `fool-s9-s8.md`）
