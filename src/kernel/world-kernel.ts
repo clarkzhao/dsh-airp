@@ -73,7 +73,11 @@ export class WorldKernel {
     const rng = options.rng ?? this.canon.meta.rng ?? 'bernoulli'
     const u = options.u ?? (rng === 'none' ? 0 : deriveU(state.rng_seed, checkId, checkOrdinal(state)))
     const outcome: 'success' | 'failure' = rng === 'none' ? (p >= 0.5 ? 'success' : 'failure') : (u < p ? 'success' : 'failure')
-    const patch = instantiatePatch({ ...(def.outcomes[outcome]?.apply ?? {}), ...(extra ?? {}) }, actors)
+    const extraPatch = sanitizeExtra(extra)
+    if (extraPatch === undefined) {
+      return fail(state, 'EXTRA_GUARDED', 'extra patch may not write present')
+    }
+    const patch = instantiatePatch({ ...(def.outcomes[outcome]?.apply ?? {}), ...extraPatch }, actors)
     const travel = this.guardTravel(state, patch)
     if (travel) return travel
     applyPatch(state, patch)
@@ -387,9 +391,22 @@ function isGuarded(pointer: string, patterns: readonly string[]): boolean {
   const parts = pointer.split('.')
   return patterns.some((pat) => {
     const want = pat.split('.')
-    if (want.length !== parts.length) return false
-    return want.every((w, i) => w === '*' || w === parts[i])
+    if (want.length > parts.length) return false
+    const prefixOk = want.every((w, i) => w === '*' || w === parts[i])
+    if (!prefixOk) return false
+    // Exact segment match, or a deeper write under a guarded terminal node
+    // (e.g. `present` must also cover `present.0`). A trailing wildcard
+    // (`characters.*`) guards the objects themselves, not their leaves.
+    return want.length === parts.length || want[want.length - 1] !== '*'
   })
+}
+
+function sanitizeExtra(extra: Patch | undefined): Patch | undefined {
+  if (!extra) return {}
+  for (const key of Object.keys(extra)) {
+    if (key === 'present' || key.startsWith('present.')) return undefined
+  }
+  return extra
 }
 
 function bindPath(expr: string, actors: Record<string, string>): string {

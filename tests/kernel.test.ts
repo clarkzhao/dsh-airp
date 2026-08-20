@@ -183,6 +183,44 @@ test('fact targeting present is CHANNEL_VIOLATION; check apply can drop a defend
   assert.ok(left.state.present.includes('dunn'))
 })
 
+test('fact cannot smuggle present via a descendant pointer like present.0', () => {
+  const k = kernel()
+  const before = state()
+  for (const pointer of ['present.0', 'present.1']) {
+    const result = k.turn(before, { type: 'fact', pointer, value: 'dunn' })
+    assert.equal(result.ok, false)
+    if (result.ok) return
+    assert.equal(result.code, 'CHANNEL_VIOLATION')
+    assert.deepEqual(result.state.present, before.present)
+  }
+})
+
+test('check extra patch cannot write present', () => {
+  const k = kernel()
+  const before = state()
+  const result = k.turn(before, {
+    type: 'check',
+    checkId: 'contest-sequence',
+    actors: { attacker: 'klein', defender: 'opponent' },
+    patch: { present: '-opponent' },
+  }, { u: 0.81 })
+  assert.equal(result.ok, false)
+  if (result.ok) return
+  assert.equal(result.code, 'EXTRA_GUARDED')
+  assert.deepEqual(result.state.present, before.present)
+  assert.deepEqual(result.state.characters.klein, before.characters.klein)
+  const indexed = k.turn(before, {
+    type: 'check',
+    checkId: 'contest-sequence',
+    actors: { attacker: 'klein', defender: 'opponent' },
+    patch: { 'present.0': 'dunn' },
+  }, { u: 0.81 })
+  assert.equal(indexed.ok, false)
+  if (indexed.ok) return
+  assert.equal(indexed.code, 'EXTRA_GUARDED')
+  assert.deepEqual(indexed.state.present, before.present)
+})
+
 test('fact targeting scene is CHANNEL_VIOLATION so oral teleport does not move you', () => {
   const k = kernel()
   const before = state()

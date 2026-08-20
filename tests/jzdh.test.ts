@@ -73,6 +73,24 @@ test('jzdh-dingjiang commission spine: fact, contest, cost, retry', async () => 
   assert.ok((beforeRetry.state.characters['ding-songyan']?.cost ?? 0) >= 0)
 })
 
+test('check_propose cannot smuggle present through the extra patch', async () => {
+  const loaded = await loadPack(root)
+  const play = new HostRuntime({ canon: loaded.canon!, sessionId: 'jzdh-guard', seed: 'seed-jzdh' })
+  const before = play.snapshot().state.present
+  const res = play.dispatch({
+    kind: 'tool',
+    name: 'check_propose',
+    args: {
+      checkId: 'contest-wushu',
+      actors: { attacker: 'ding-songyan', defender: 'er-ren' },
+      patch: { present: '-ding-songyan' },
+    },
+  })
+  assert.equal(res.ok, false)
+  assert.match(res.text, /EXTRA_GUARDED/)
+  assert.deepEqual(play.snapshot().state.present, before)
+})
+
 test('dingjiang places allow temple to graveyard and block a hop with no edge', async () => {
   const loaded = await loadPack(root)
   const play = new HostRuntime({ canon: loaded.canon!, sessionId: 'jzdh-walk', seed: 'seed-jzdh' })
