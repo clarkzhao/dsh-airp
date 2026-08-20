@@ -163,6 +163,7 @@ export type Intent =
 export type KernelErrorCode =
   | 'UNKNOWN_CHECK'
   | 'CHANNEL_VIOLATION'
+  | 'EXTRA_GUARDED'
   | 'BUDGET'
   | 'INVALID_CONDITION'
   | 'MISSING_REASON'

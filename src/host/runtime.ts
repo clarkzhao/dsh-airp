@@ -58,10 +58,7 @@ export class HostRuntime {
   }
 
   indexText(): string {
-    const job = this.loreBody(resolveLoreKey(
-      Object.keys(this.canon.lore).filter((id) => id.includes('commission')),
-      this.canon.lore,
-    ))
+    const job = this.loreBody(this.commissionKey())
     const place = this.loreBody(resolveLoreKey(loreKeyCandidates(this.state.scene), this.canon.lore))
     const lexicon = tagsFromMeta(this.canon.meta)
     const tagLine = Object.entries(lexicon).map(([tag, words]) => `${tag}←${words.slice(0, 4).join('/')}`).join('；')
@@ -91,6 +88,25 @@ export class HostRuntime {
     if (!key) return ''
     const result = this.kernel.turn(this.state, { type: 'lore', key })
     return result.ok && result.receipt.kind === 'lore' ? result.receipt.body : ''
+  }
+
+  /**
+   * Commission lore for the live brief. A pack may ship several commission
+   * keys (e.g. one per seating mode); the one whose key mentions the current
+   * `facts.play_mode` wins, otherwise the first commission key in index order.
+   * No commission → undefined, and loreBody returns ''.
+   */
+  private commissionKey(): string | undefined {
+    const listed = (this.canon.index.lore ?? []).filter((id) => id.includes('commission') && this.canon.lore[id])
+    const keys = listed.length ? listed : Object.keys(this.canon.lore).filter((id) => id.includes('commission'))
+    if (keys.length === 0) return undefined
+    const mode = this.state.facts.play_mode
+    if (typeof mode === 'string' && mode) {
+      const named = keys.find((key) => key.endsWith(`-commission-${mode}`) || key.endsWith(`commission-${mode}`))
+        ?? keys.find((key) => key.includes(mode))
+      if (named) return named
+    }
+    return keys[0]
   }
 
   bootBrief(): string {
