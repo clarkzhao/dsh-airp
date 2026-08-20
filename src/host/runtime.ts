@@ -58,18 +58,6 @@ export class HostRuntime {
   }
 
   indexText(): string {
-    return [
-      `AIRP pack ${this.canon.meta.id} — ${this.canon.meta.title}`,
-      `checks: ${this.canon.index.checks.join(', ')}`,
-      `characters: ${this.canon.index.characters.join(', ')}`,
-      `lore: ${this.canon.index.lore.join(', ')}`,
-      `pc: ${this.state.present[0] ?? '(none)'}`,
-      this.travelLine(),
-      'Numeric fields only change via check_propose or /gm. Walking is not a check.',
-    ].join('\n')
-  }
-
-  bootBrief(): string {
     const commissionKey = resolveLoreKey(
       Object.keys(this.canon.lore).filter((id) => id.includes('commission')),
       this.canon.lore,
@@ -86,18 +74,30 @@ export class HostRuntime {
       .map(([k, v]) => `${k}=${typeof v === 'string' ? v : JSON.stringify(v)}`)
       .join(', ')
     return [
-      this.indexText(),
+      `AIRP pack ${this.canon.meta.id} — ${this.canon.meta.title}`,
+      `checks: ${this.canon.index.checks.join(', ')}`,
+      `characters: ${this.canon.index.characters.join(', ')}`,
+      `lore: ${this.canon.index.lore.join(', ')}`,
+      `pc: ${this.state.present[0] ?? '(none)'}`,
       `scene: ${this.state.scene}`,
       `present: ${this.state.present.join(', ')}`,
       facts ? `facts: ${facts}` : '',
+      this.travelLine(),
       tagLine ? `鉴定词：${tagLine}` : '',
       place ? `场景：\n${place}` : '',
       job ? `委托：\n${job}` : '',
       this.arrivalNote(),
+      'Numeric fields only change via check_propose or /gm. Walking is not a check.',
+    ].filter((line) => line !== undefined && line !== '').join('\n')
+  }
+
+  bootBrief(): string {
+    return [
+      this.indexText(),
       '',
       '你已经在引擎里。禁止再问引擎在哪、不要扫工作区、不要用 ask_user_question 找路径。',
       '开场直接叙述当前场景。用 lore_get / state_read / check_propose / state_propose_fact。',
-    ].filter((line) => line !== undefined).join('\n')
+    ].join('\n')
   }
 
   private travelLine(): string {
