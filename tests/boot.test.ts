@@ -82,7 +82,7 @@ test('live indexText follows scene after a travel check', async () => {
   const live = rt.indexText()
   assert.match(live, /scene: jzdh.luanzanggang/)
   assert.match(live, /乱葬岗/)
-  assert.match(live, /commission=pending|commission: pending/)
+  assert.match(live, /commission=pending/)
 })
 
 test('custom path loads that directory', async () => {

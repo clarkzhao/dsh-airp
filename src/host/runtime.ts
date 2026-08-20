@@ -58,15 +58,11 @@ export class HostRuntime {
   }
 
   indexText(): string {
-    const commissionKey = resolveLoreKey(
+    const job = this.loreBody(resolveLoreKey(
       Object.keys(this.canon.lore).filter((id) => id.includes('commission')),
       this.canon.lore,
-    )
-    const sceneKey = resolveLoreKey(loreKeyCandidates(this.state.scene), this.canon.lore)
-    const commission = commissionKey ? this.kernel.turn(this.state, { type: 'lore', key: commissionKey }) : undefined
-    const scene = sceneKey ? this.kernel.turn(this.state, { type: 'lore', key: sceneKey }) : undefined
-    const job = commission?.ok && commission.receipt.kind === 'lore' ? commission.receipt.body : ''
-    const place = scene?.ok && scene.receipt.kind === 'lore' ? scene.receipt.body : ''
+    ))
+    const place = this.loreBody(resolveLoreKey(loreKeyCandidates(this.state.scene), this.canon.lore))
     const lexicon = tagsFromMeta(this.canon.meta)
     const tagLine = Object.entries(lexicon).map(([tag, words]) => `${tag}←${words.slice(0, 4).join('/')}`).join('；')
     const facts = Object.entries(this.state.facts)
@@ -89,6 +85,12 @@ export class HostRuntime {
       this.arrivalNote(),
       'Numeric fields only change via check_propose or /gm. Walking is not a check.',
     ].filter((line) => line !== undefined && line !== '').join('\n')
+  }
+
+  private loreBody(key: string | undefined): string {
+    if (!key) return ''
+    const result = this.kernel.turn(this.state, { type: 'lore', key })
+    return result.ok && result.receipt.kind === 'lore' ? result.receipt.body : ''
   }
 
   bootBrief(): string {
