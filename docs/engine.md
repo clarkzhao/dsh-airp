@@ -256,7 +256,7 @@ v0 默认 ξ：存档种子派生 `u ~ Uniform(0,1)`，`u < p` 成功。测试�
 
 | 工具 / 命令 | play | author | 实际 |
 |---|---|---|---|
-| `lore_get` / `state_read` | ✓ | ✓ | `turn(lore\|look)`。`lore_get` 的 key 也可以是角色卡 id，返回卡 body（口吻/外形/对外身份），预算同 lore |
+| `lore_get` / `state_read` | ✓ | ✓ | `turn(lore\|look)`。`lore_get` 的 key 也可以是角色卡 id，返回卡的 body（口吻/外形/对外身份），预算同 lore。收据仍是 `kind: lore`；未知 id 仍 `UNKNOWN_LORE` |
 | `check_propose` | ✓ | ✓ | `turn(check)`；condition 已强制时本轮不必再调 |
 | `state_propose_fact` | ✓ | ✓ | `turn(fact)` |
 | `pack_validate` | | ✓ | `Pack.validate`，不经 `turn` |
