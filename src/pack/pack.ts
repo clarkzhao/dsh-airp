@@ -123,6 +123,7 @@ export function validatePack(canon: Canon): PackDiagnostic[] {
     for (const outcome of Object.values(check.outcomes)) {
       for (const pointer of Object.keys(outcome?.apply ?? {})) {
         if (pointer.includes('{')) continue
+        if (pointer === 'present' || pointer === 'scene') continue
         if (!looksLikePointer(pointer)) out.push({ code: 'BAD_POINTER', message: `${check.id} bad pointer ${pointer}` })
       }
     }

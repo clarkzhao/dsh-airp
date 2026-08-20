@@ -168,9 +168,11 @@ export function scaffoldFiles(spec: ScaffoldSpec): Record<string, string> {
     '  success:',
     '    apply:',
     '      facts.last_contest: attacker',
+    '      present: "-{defender}"',
     '  failure:',
     '    apply:',
     '      facts.last_contest: defender',
+    '      present: "-{defender}"',
     `      characters.{attacker}.cost: "${hardCost ? '+0.2' : '+0.1'}"`,
     '',
   ].join('\n')

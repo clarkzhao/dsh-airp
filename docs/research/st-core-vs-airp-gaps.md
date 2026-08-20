@@ -60,7 +60,7 @@
 一条 adapter 不够开新 port（codebase-design：一个 adapter 只是假设缝）。以下全部落在现有 Module / Interface 上：
 
 1. **brief seam 加深（对应最缺 1）**：`HostRuntime` 已有 `bootBrief()`（`runtime.ts:72-101`）但只发一次。加深为可重发/自动重发：a) travel（check/gm 写 `scene`）成功时，Adapter 自动把新场景 lore 注入本回合（等价于对 `index.scenes` 的新 key 做一次 `turn({type:'lore'})`，仍走 `loreBudgetChars` 预算，不扫关键词）；b) 换场或每 N 回合重发一行「scene / present / facts / clock.beat」回显（`travelLine` 已有雏形 `runtime.ts:103-115`）。这是对现有 `brief`/`turn` 的加深，不引入扫描器语义。
-2. **turn/match 的在场语义加深（对应最缺 2）**：`present` 进入 guard 通道（只允许 check 结算或 gm 改 present，`fact` 写 `present` 应 `CHANNEL_VIOLATION`——现在 `DEFAULT_GUARDED` 有 `scene` 无 `present`，`types.ts:3-19`）；check 的 outcomes 支持 `apply` 写 `present` 数组做离场；离场时产出事件（可审计）。`match` 的 `present` 谓词语义不变，但离场后角色自然不再命中。`Pack.validate` 补一条：`present`/`roster` 引用的角色必须有卡（部分已有 `OPENING_ABSENT`，`pack.ts:118-120`）。
+2. **turn/match 的在场语义加深（对应最缺 2）**：`present` 进 `DEFAULT_GUARDED`。引擎不猜谁离场。作者在 check `outcomes.apply` 写 `present: "-{defender}"`（或整表替换）。`fact` 写 `present` → `CHANNEL_VIOLATION`。`match` 谓词不变，离场后自然不再命中。
 3. **kernel 因果抽查落地（对应最缺 3）**：`turn` 之后把叙述文本与 `events` 对照（声称晋升/定品但本回合无 check 事件），收据层标 `UNCAUSED_CLAIM`、State 不变（ROADMAP.md:42-43 已写死是 Kernel 行为）。这是 engine.md §5 双通道的收尾，也是对「模型口头改判」攻击面（engine.md:342-344）的第一道真实阻断。
 
 ## 依据

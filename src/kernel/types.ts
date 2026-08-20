@@ -16,6 +16,7 @@ export const DEFAULT_GUARDED = [
   'scene',
   'clock.beat',
   'characters.*.mobility',
+  'present',
 ] as const
 
 export type Patch = Record<string, Json | string>
