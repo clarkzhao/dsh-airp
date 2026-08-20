@@ -132,7 +132,7 @@ facts: { weather: "雾", alarm: false }
 
 `sequence` / `digest` / `lose_control` 以及胜负、晋升、资源列入鉴定通道。其它指针才允许 `fact`。
 
-角色卡是 Canon 人设（口吻、外形、对外身份、声明途径）。可变进度只活在 State。出场且会说话或被鉴定的人必须有卡；路人可标 `provisional`，不写回包。
+角色卡是 Canon 人设（口吻、外形、对外身份、声明途径）。可变进度只活在 State。出场且会说话或被鉴定的人必须有卡；路人可标 `provisional`，不写回包。Play 召已有卡上场：IC 点名或 `/gm present=+id :: 理由`。不新增 play 工具。新卡由 author 改文件，不在 play 会话 mint。
 
 事件（Kernel 产出，Adapter 落盘）：
 
