@@ -160,9 +160,12 @@ function fail(state: WorldState, code: KernelErrorCode, message: string): TurnRe
 function resolveActors(pred: Predicate, state: WorldState, given: Record<string, string>): Record<string, string> {
   const actors = { ...given }
   const slots = collectActorSlots(pred)
+  // Only fill a lone helper slot such as `$actor` on cost/travel. Contest
+  // (`$attacker` + `$defender`) must not collapse both onto present[0].
   if (slots.length !== 1) return actors
-  if (actors[slots[0]!]) return actors
-  if (state.present.length === 1) actors[slots[0]!] = state.present[0]!
+  const slot = slots[0]!
+  if (actors[slot]) return actors
+  if (state.present.length === 1) actors[slot] = state.present[0]!
   return actors
 }
 
@@ -186,7 +189,12 @@ function evalPredicate(
 ): boolean {
   if ('all' in pred) return pred.all.every((p) => evalPredicate(p, state, tags, actors, options))
   if ('any' in pred) return pred.any.some((p) => evalPredicate(p, state, tags, actors, options))
-  if ('tag' in pred) return options.skipTags ? true : tags.includes(pred.tag)
+  // skipTags: explicit check_propose has no IC lexicon. Treat tag atoms as
+  // already satisfied so present/eq still gate the check.
+  if ('tag' in pred) {
+    if (options.skipTags) return true
+    return tags.includes(pred.tag)
+  }
   if ('present' in pred) {
     return pred.present.every((item) => {
       const id = item.startsWith('$') ? actors[item.slice(1)] : item

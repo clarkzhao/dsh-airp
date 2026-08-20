@@ -285,6 +285,8 @@ test('explicit check_propose still runs when condition only adds a tag', () => {
   assert.equal(result.events[0]?.type, 'check')
 })
 
+
+
 test('match hits contest tags and turn(check) writes a check event without a model', () => {
   const k = kernel()
   const s = state()

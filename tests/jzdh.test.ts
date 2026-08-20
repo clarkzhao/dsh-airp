@@ -53,6 +53,7 @@ test('jzdh-dingjiang commission spine: fact, contest, cost, retry', async () => 
     u: 0.81,
   })
   assert.equal(idleFight.forced, false)
+  assert.ok((idleFight.result.events ?? []).every((event) => event.type !== 'check'))
   assert.ok(!play.snapshot().state.present.includes('er-ren'))
 
   // ding vs moth: p≈0.004, so u=0.81 lands on failure → the moth stays on stage
