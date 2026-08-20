@@ -67,6 +67,9 @@ export class WorldKernel {
     for (const [slot, id] of Object.entries(actors)) {
       if (!state.characters[id]) return fail(state, 'UNKNOWN_ACTOR', `unknown actor ${slot}=${id}`)
     }
+    if (def.condition && !evalPredicate(def.condition, state, [], actors, { skipTags: true })) {
+      return fail(state, 'INVALID_CONDITION', `condition not met for ${checkId}`)
+    }
     const inputs = resolveInputs(def, state, actors)
     if (inputs === undefined) return fail(state, 'INVALID_CONDITION', 'could not resolve check inputs')
     const p = evalFormula(def.formula, inputs)
@@ -156,10 +159,10 @@ function fail(state: WorldState, code: KernelErrorCode, message: string): TurnRe
 }
 function resolveActors(pred: Predicate, state: WorldState, given: Record<string, string>): Record<string, string> {
   const actors = { ...given }
-  for (const slot of collectActorSlots(pred)) {
-    if (actors[slot]) continue
-    if (state.present.length === 1) actors[slot] = state.present[0]!
-  }
+  const slots = collectActorSlots(pred)
+  if (slots.length !== 1) return actors
+  if (actors[slots[0]!]) return actors
+  if (state.present.length === 1) actors[slots[0]!] = state.present[0]!
   return actors
 }
 
@@ -174,10 +177,16 @@ function collectActorSlots(pred: Predicate, into: Set<string> = new Set()): stri
   return [...into]
 }
 
-function evalPredicate(pred: Predicate, state: WorldState, tags: string[], actors: Record<string, string>): boolean {
-  if ('all' in pred) return pred.all.every((p) => evalPredicate(p, state, tags, actors))
-  if ('any' in pred) return pred.any.some((p) => evalPredicate(p, state, tags, actors))
-  if ('tag' in pred) return tags.includes(pred.tag)
+function evalPredicate(
+  pred: Predicate,
+  state: WorldState,
+  tags: string[],
+  actors: Record<string, string>,
+  options: { skipTags?: boolean } = {},
+): boolean {
+  if ('all' in pred) return pred.all.every((p) => evalPredicate(p, state, tags, actors, options))
+  if ('any' in pred) return pred.any.some((p) => evalPredicate(p, state, tags, actors, options))
+  if ('tag' in pred) return options.skipTags ? true : tags.includes(pred.tag)
   if ('present' in pred) {
     return pred.present.every((item) => {
       const id = item.startsWith('$') ? actors[item.slice(1)] : item

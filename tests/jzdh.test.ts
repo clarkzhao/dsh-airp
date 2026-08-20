@@ -44,20 +44,15 @@ test('jzdh-dingjiang commission spine: fact, contest, cost, retry', async () => 
   })
   assert.equal(blocked.ok, false)
 
-  // With a single character on stage (present=[ding-songyan] now), kernel
-  // resolveActors auto-fills missing actor slots from present[0], so an
-  // attacker-only contest forces a self-check (ENGINE TODO: require a distinct
-  // defender). It must still not stage roster characters like er-ren.
+  // Lone present must not invent a defender. Contest IC without a named
+  // opponent is not a check; roster moths stay off-stage.
   const idleFight = play.dispatch({
     kind: 'ic',
     tags: ['contest'],
     actors: { attacker: 'ding-songyan' },
     u: 0.81,
   })
-  assert.equal(idleFight.forced, true)
-  if (idleFight.forced && idleFight.result.events[0]?.type === 'check') {
-    assert.equal(idleFight.result.events[0].actors.defender, 'ding-songyan')
-  }
+  assert.equal(idleFight.forced, false)
   assert.ok(!play.snapshot().state.present.includes('er-ren'))
 
   // ding vs moth: p≈0.004, so u=0.81 lands on failure → the moth stays on stage
@@ -107,7 +102,14 @@ test('jzdh-dingjiang commission spine: fact, contest, cost, retry', async () => 
 test('check_propose cannot smuggle present through the extra patch', async () => {
   const loaded = await loadPack(root)
   const play = new HostRuntime({ canon: loaded.canon!, sessionId: 'jzdh-guard', seed: 'seed-jzdh' })
+  play.dispatch({
+    kind: 'ic',
+    tags: ['contest'],
+    actors: { attacker: 'ding-songyan', defender: 'er-ren' },
+    u: 0.81,
+  })
   const before = play.snapshot().state.present
+  assert.ok(before.includes('er-ren'))
   const res = play.dispatch({
     kind: 'tool',
     name: 'check_propose',
