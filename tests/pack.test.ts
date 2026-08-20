@@ -3,7 +3,7 @@ import { mkdtemp, mkdir, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { test } from 'node:test'
-import { loadPack, validatePack } from '../src/pack/pack.ts'
+import { applySeating, initialState, loadPack, validatePack, WANDERER_ID } from '../src/pack/pack.ts'
 import type { Canon } from '../src/kernel/types.ts'
 
 async function writeMinimal(dir: string, extraCheck = ''): Promise<void> {
@@ -108,6 +108,35 @@ test('validatePack warns when an index scene has no lore file', () => {
   } satisfies Canon
   const diags = validatePack(canon)
   assert.ok(diags.some((d) => d.code === 'MISSING_SCENE' && d.severity === 'warning'))
+})
+
+test('custom seating present is wanderer only even if opening lists a sidekick', () => {
+  const canon = {
+    meta: {
+      id: 'seat-pack',
+      title: '座',
+      rng: 'none',
+      entry_scene: 'pack.a',
+      opening: { present: ['hero', 'sidekick'] },
+    },
+    index: { checks: [], characters: ['hero', 'sidekick'], lore: ['pack-a'], scenes: ['pack.a', 'pack.b'] },
+    checks: {},
+    characters: {
+      hero: { id: 'hero', name: '主角', keys: ['主角'], body: '口吻。' },
+      sidekick: { id: 'sidekick', name: '配角', keys: ['配角'], body: '配角。' },
+    },
+    lore: { 'pack-a': { key: 'pack-a', body: 'A。' }, 'pack-b': { key: 'pack-b', body: 'B。' } },
+    guarded: [],
+  } satisfies Canon
+  const opening = initialState(canon, 'seed-seat')
+  assert.deepEqual(opening.present, ['hero', 'sidekick'])
+  const custom = applySeating(opening, canon, { mode: 'custom', customName: '路人', scene: 'pack.b' })
+  assert.deepEqual(custom.present, [WANDERER_ID])
+  assert.equal(custom.scene, 'pack.b')
+  assert.ok(custom.characters.hero)
+  assert.ok(custom.characters.sidekick)
+  const easy = applySeating(opening, canon, { mode: 'easy' })
+  assert.deepEqual(easy.present, ['hero', 'sidekick'])
 })
 
 test('validatePack warns on ST macros and progress hidden in stats', () => {

@@ -287,7 +287,7 @@ export function applySeating(state: WorldState, canon: Canon, seat?: OpeningSeat
       ...defaultCharacterStats(canon),
       display_name: name,
     }
-    next.present = [WANDERER_ID, ...next.present.filter((id) => id !== WANDERER_ID && id !== (canon.meta.opening?.present?.[0] ?? ''))]
+    next.present = [WANDERER_ID]
     next.facts.play_mode = 'custom'
     next.facts.pc_name = name
     if (seat.age) next.facts.pc_age = seat.age
