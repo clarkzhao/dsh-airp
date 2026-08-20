@@ -230,7 +230,7 @@ export class HostRuntime {
     const cut = lastCheckIndex(this.log, checkId)
     if (cut < 0) return this.fail('nothing to retry')
     this.log = this.log.slice(0, cut)
-    this.state = replay(this.kernel, this.opening, this.log)
+    this.state = replay(this.kernel, this.canon, this.opening, this.log)
     this.id = `${parent}~retry`
     return {
       ok: true,
@@ -281,6 +281,20 @@ function asActors(value: unknown): Record<string, string> {
   return Object.fromEntries(Object.entries(value as Record<string, unknown>).map(([k, v]) => [k, String(v)]))
 }
 
+function extraBeyondYaml(canon: Canon, event: Extract<StoryEvent, { type: 'check' }>): Record<string, import('../kernel/types.ts').Json> | undefined {
+  const apply = canon.checks[event.check_id]?.outcomes[event.outcome]?.apply ?? {}
+  const extra: Record<string, import('../kernel/types.ts').Json> = {}
+  for (const [path, value] of Object.entries(event.patch)) {
+    if (path === 'clock.beat') continue
+    const yamlHas = Object.keys(apply).some((key) => {
+      const bound = key.replace(/\{(\w+)\}/g, (_, slot: string) => event.actors[slot] ?? `{${slot}}`)
+      return key === path || bound === path
+    })
+    if (!yamlHas) extra[path] = value
+  }
+  return Object.keys(extra).length ? extra : undefined
+}
+
 function lastCheckIndex(events: StoryEvent[], checkId?: string): number {
   for (let i = events.length - 1; i >= 0; i -= 1) {
     const event = events[i]!
@@ -290,14 +304,16 @@ function lastCheckIndex(events: StoryEvent[], checkId?: string): number {
   return -1
 }
 
-function replay(kernel: WorldKernel, opening: WorldState, events: StoryEvent[]): WorldState {
+function replay(kernel: WorldKernel, canon: Canon, opening: WorldState, events: StoryEvent[]): WorldState {
   let state = structuredClone(opening)
   for (const event of events) {
     if (event.type === 'check') {
+      const extra = extraBeyondYaml(canon, event)
       const next = kernel.turn(state, {
         type: 'check',
         checkId: event.check_id,
         actors: event.actors,
+        ...(extra ? { patch: extra } : {}),
       }, { u: event.xi.u })
       if (next.ok) state = next.state
       continue

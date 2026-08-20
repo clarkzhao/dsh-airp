@@ -137,6 +137,31 @@ test('check_propose cannot smuggle present through the extra patch', async () =>
   assert.deepEqual(play.snapshot().state.present, before)
 })
 
+test('retry after travel returns to the pre-contest scene not boot', async () => {
+  const loaded = await loadPack(root)
+  const play = new HostRuntime({ canon: loaded.canon!, sessionId: 'jzdh-retry-travel', seed: 'seed-jzdh' })
+  const walk = play.dispatch({
+    kind: 'tool',
+    name: 'check_propose',
+    args: { checkId: 'travel-on-foot', actors: { actor: 'ding-songyan' }, patch: { scene: 'jzdh.luanzanggang' } },
+  })
+  assert.equal(walk.ok, true, walk.text)
+  assert.equal(play.snapshot().state.scene, 'jzdh.luanzanggang')
+  assert.equal(play.snapshot().state.clock?.beat, 2)
+  const fight = play.dispatch({
+    kind: 'ic',
+    tags: ['contest'],
+    actors: { attacker: 'ding-songyan', defender: 'er-ren' },
+    u: 0.81,
+  })
+  assert.equal(fight.forced, true)
+  const retried = play.dispatch({ kind: 'command', name: 'retry', rawInput: 'contest-wushu' })
+  assert.equal(retried.ok, true, retried.text)
+  assert.equal(play.snapshot().state.scene, 'jzdh.luanzanggang')
+  assert.equal(play.snapshot().state.clock?.beat, 2)
+  assert.ok(!play.snapshot().state.present.includes('er-ren'))
+})
+
 test('dingjiang places allow temple to graveyard and block a hop with no edge', async () => {
   const loaded = await loadPack(root)
   const play = new HostRuntime({ canon: loaded.canon!, sessionId: 'jzdh-walk', seed: 'seed-jzdh' })
