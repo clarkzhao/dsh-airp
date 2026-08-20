@@ -243,6 +243,50 @@ test('fact targeting lose_control is CHANNEL_VIOLATION and state unchanged', () 
   assert.deepEqual(result.state, before)
 })
 
+test('check_propose without a present defender is INVALID_CONDITION', () => {
+  const k = kernel()
+  const before = state({ present: ['klein', 'dunn'] })
+  const result = k.turn(before, {
+    type: 'check',
+    checkId: 'contest-sequence',
+    actors: { attacker: 'klein', defender: 'opponent' },
+  }, { u: 0.81 })
+  assert.equal(result.ok, false)
+  if (result.ok) return
+  assert.equal(result.code, 'INVALID_CONDITION')
+  assert.deepEqual(result.events, [])
+  assert.deepEqual(result.state.present, before.present)
+  assert.equal(result.state.characters.klein!.lose_control, before.characters.klein!.lose_control)
+})
+
+test('lone present does not fill a missing defender as the same person', () => {
+  const k = kernel()
+  const s = state({ present: ['klein'] })
+  const forced = k.match(s, ['contest'], { attacker: 'klein' })
+  assert.equal(forced.length, 0)
+  const proposed = k.turn(s, {
+    type: 'check',
+    checkId: 'contest-sequence',
+    actors: { attacker: 'klein' },
+  }, { u: 0.81 })
+  assert.equal(proposed.ok, false)
+  if (proposed.ok) return
+  assert.equal(proposed.code, 'INVALID_CONDITION')
+})
+
+test('explicit check_propose still runs when condition only adds a tag', () => {
+  const k = kernel()
+  const result = k.turn(state(), {
+    type: 'check',
+    checkId: 'contest-sequence',
+    actors: { attacker: 'klein', defender: 'opponent' },
+  }, { u: 0.81 })
+  assert.equal(result.ok, true)
+  assert.equal(result.events[0]?.type, 'check')
+})
+
+
+
 test('match hits contest tags and turn(check) writes a check event without a model', () => {
   const k = kernel()
   const s = state()
