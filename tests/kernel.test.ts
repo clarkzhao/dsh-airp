@@ -153,6 +153,36 @@ test('places graph blocks a hop that needs mobility', () => {
   assert.equal(ok.state.clock?.beat, 4)
 })
 
+test('fact targeting present is CHANNEL_VIOLATION; check apply can drop a defender', () => {
+  const k = new WorldKernel(canon({
+    checks: {
+      'contest-sequence': {
+        ...contestCheck(),
+        outcomes: {
+          success: { apply: { present: '-opponent', 'facts.last_contest': 'attacker' } },
+          failure: { apply: { present: '-opponent', 'facts.last_contest': 'defender' } },
+        },
+      },
+    },
+  }))
+  const before = state()
+  const blocked = k.turn(before, { type: 'fact', pointer: 'present', value: ['klein'] })
+  assert.equal(blocked.ok, false)
+  if (blocked.ok) return
+  assert.equal(blocked.code, 'CHANNEL_VIOLATION')
+  assert.deepEqual(blocked.state.present, before.present)
+  const left = k.turn(before, {
+    type: 'check',
+    checkId: 'contest-sequence',
+    actors: { attacker: 'klein', defender: 'opponent' },
+  }, { u: 0.81 })
+  assert.equal(left.ok, true)
+  if (!left.ok) return
+  assert.ok(!left.state.present.includes('opponent'))
+  assert.ok(left.state.present.includes('klein'))
+  assert.ok(left.state.present.includes('dunn'))
+})
+
 test('fact targeting scene is CHANNEL_VIOLATION so oral teleport does not move you', () => {
   const k = kernel()
   const before = state()

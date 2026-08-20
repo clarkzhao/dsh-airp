@@ -340,13 +340,23 @@ function evalTokens(tokens: string[], env: Record<string, number | boolean>): nu
 function instantiatePatch(patch: Patch, actors: Record<string, string>): Record<string, Json> {
   const out: Record<string, Json> = {}
   for (const [path, value] of Object.entries(patch)) {
-    out[bindPath(path, actors)] = value as Json
+    out[bindPath(path, actors)] = bindValue(value, actors)
   }
   return out
 }
 
+function bindValue(value: Json | string, actors: Record<string, string>): Json {
+  if (typeof value === 'string') return bindPath(value, actors)
+  if (Array.isArray(value)) return value.map((item) => bindValue(item as Json, actors))
+  return value as Json
+}
+
 function applyPatch(state: WorldState, patch: Record<string, Json>): void {
   for (const [path, value] of Object.entries(patch)) {
+    if (path === 'present') {
+      writePointer(state, path, applyPresent(state.present, value))
+      continue
+    }
     if (typeof value === 'string' && /^[+-]\d+(\.\d+)?$/.test(value)) {
       const cur = readPointer(state, path)
       const base = typeof cur === 'number' ? cur : 0
@@ -355,6 +365,22 @@ function applyPatch(state: WorldState, patch: Record<string, Json>): void {
     }
     writePointer(state, path, value)
   }
+}
+
+function applyPresent(current: string[], value: Json): string[] {
+  if (typeof value === 'string') {
+    const id = value.trim()
+    if (id.startsWith('-')) return current.filter((item) => item !== id.slice(1))
+    if (id.startsWith('+')) {
+      const add = id.slice(1)
+      return current.includes(add) ? current : [...current, add]
+    }
+    return [id]
+  }
+  if (Array.isArray(value) && value.every((item) => typeof item === 'string')) {
+    return [...value]
+  }
+  return current
 }
 
 function isGuarded(pointer: string, patterns: readonly string[]): boolean {

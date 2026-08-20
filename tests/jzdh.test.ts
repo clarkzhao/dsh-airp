@@ -56,7 +56,8 @@ test('jzdh-dingjiang commission spine: fact, contest, cost, retry', async () => 
   })
   assert.equal(contest.forced, true)
   assert.equal(contest.result.events[0]?.type, 'check')
-  assert.ok(play.snapshot().state.present.includes('er-ren'))
+  assert.ok(!play.snapshot().state.present.includes('er-ren'))
+  assert.ok(play.snapshot().state.present.includes('ding-songyan'))
 
   const cost = play.dispatch({
     kind: 'tool',
