@@ -1,7 +1,7 @@
 # DSH AIRP 引擎方案
 
 - 日期：2026-08-18
-- 状态：v1.1（按 codebase-design 收成单一深 module；删假缝）
+- 状态：v1.1（按 codebase-design 收成单一深 module；删假缝）。行为以代码为准。agent 入口 [`AGENTS.md`](../AGENTS.md)；年表过期时改本文件 §12，不要在两处各写一套。
 - 配套：[ADR-0008](./adr/0008-st-as-reference-and-asset-mine.md) … [ADR-0011](./adr/0011-check-engine-declarative-and-optional-conditions.md)（从 notes/tavern-ai-native 收编）
 - 证据：SillyTavern v1.18.0；DSH 0.1.0-rc.6
 
@@ -363,8 +363,8 @@ Adapter 测试只覆盖：工具名译成 intent、play 掩码看不见 validate
 
 | 阶段 | 做 | 不做 |
 |---|---|---|
-| v0 | 本文 DoD | Worldsmith、市场、生图、全书、`present`、`canon.edit` |
-| v1 | Worldsmith、provisional 晋升、因果抽查阻断、第二种表现出现再提 present seam | SaaS |
-| v2 | 语义迁移 ST 资产、可选世界时钟 | 把 ST 请回宿主 |
+| 0.1.0 | Kernel + Host + 两份官方示例可玩一晚；`present` 已 guard | Worldsmith、市场、生图、全书、`canon.edit`、日历钟、`UNCAUSED_CLAIM` |
+| 之后 | Worldsmith、provisional 晋升、因果抽查阻断、收据去骰 | SaaS |
+| 更后 | 语义迁移 ST 资产、可选日历钟 | 把 ST 请回宿主 |
 
 实现顺序：Kernel + 对抗单测 → `lotm-tingen` → Adapter + `airp-play` → `/retry` `/gm` → `airp-author` + validate → 手玩委托。

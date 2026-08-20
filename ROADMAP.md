@@ -2,23 +2,40 @@
 
 不是承诺表。用来告诉社区「现在能提什么 issue、不该提什么 PR」。
 
-**主线是引擎 + 两个 preset。** `packs/lotm-tingen` 和 `packs/jzdh-dingjiang` 是官方 demo / 测试夹具，用来证明 interface，不是产品剧情线。未来世界由生产者自己产出，放 `~/.dsh/airp-packs/` 或独立仓库。不要把「把定江读完 / 把设定集写厚」当成引擎迭代。
+**主线是引擎 + 两个 preset。** `packs/lotm-tingen` 和 `packs/jzdh-dingjiang` 是官方示例包，用来证明引擎能玩，不是产品剧情线。未来世界由生产者自己产出，放 `~/.dsh/airp-packs/` 或独立仓库。不要把「把定江读完 / 把设定集写厚」当成引擎迭代。
 
-## 现在（v0）
+## 现在：第一个基本可用版本 **0.1.0**
 
-- [x] `WorldKernel`：`match` / `turn`，双通道，事件溯源
-- [x] Host adapter：工具翻译、开局选包、`/retry` fork
-- [x] 开放包发现：bundled demo + `~/.dsh/airp-packs` + 自定义路径
-- [x] 创造者：ask-user 八问 + `pack_scaffold` + `pack_validate` + 交接卡
-- [x] 夹具：`lotm-tingen`、`jzdh-dingjiang`（只证明委托脊柱，不扩张成全书）
-- [x] 文档：`docs/engine.md`、`docs/worldbook-authoring.md`、ADR 0008–0011
+`package.json` 已是 `0.1.0`。Git tag `0.1.0` 在边界清完、示例包可玩、文档对得上代码时打。**0.1.0 是引擎 + 两个 preset + 两份官方示例能诚实玩一晚**，不是全书、不是 Worldsmith、不是市场。
+
+**里面有**
+
+- `WorldKernel`：`match` / `turn`，双通道，事件在 Host log
+- Host：开局选包、常驻 `indexText`、IC 点名上场、`/retry` 回放（含换场 extra）
+- 座位：轻松默认线 vs 自拟 `wanderer`（场上只有穿越者）
+- Pack 数据：YAML 离场、`places.need`（`mobility>=N` 或 `facts.k=v` / `k!=v`）、`lore_get` 可读卡 body
+- 创造者：八问 → scaffold → `pack_validate` → 交接卡（不热切 preset）
+- 官方示例：`lotm-tingen`、`jzdh-dingjiang`（一条开场委托能走完，不是连载）
+- 文档：`docs/engine.md`、`docs/worldbook-authoring.md`、[`AGENTS.md`](AGENTS.md)
+
+**外面没有（不要为了打 tag 再做）**
+
+- Worldsmith / `canon.edit` / play 里 mint 角色
+- ST 扫描器、宏、`{{setvar}}`、Silly-Map
+- **日历**世界钟（`clock.beat` 已有，不是这个）
+- 因果抽查阻断（`UNCAUSED_CLAIM`）、收据对玩家隐瞒 `p`/`u`（现在 `receiptText` 仍带数字，0.1.0 接受）
+- 开局卡「用户包为先 / last-played」（仍默认官方 demo 靠前）
+- 官方 demo 写成全书；社区包 PR 进 `packs/`
+- play 里 bash / `cordis_*`
+
+`AGENTS.md` 在 PR #17，合入 main 后再算 0.1.0 文档齐。
 
 欢迎的 issue：
 
 - `engine`：Kernel 门禁、鉴定公式、事件回放、收据是否够消费者用
 - `authoring`：八问、scaffold、校验诊断、交接卡
 - `docs`：消费者装包 / 生产者交包看不懂
-- `demo`：夹具坏了（委托不可玩、预算爆、角色卡写了进度）——修夹具，不要借机加剧情
+- `demo`：官方示例坏了（委托不可玩、预算爆、角色卡写了进度）——修示例，不要借机加剧情
 
 不欢迎的 PR：
 
@@ -32,19 +49,15 @@
 
 消费者只看见：选包 → 进场 brief → `lore_get` / `state_read` / `check_propose` / `state_propose_fact` → `/retry`。看不见 validate / scaffold。
 
-加深现有缝，不开假缝：
+**0.1.0 已有：** 选包（bundled + 用户目录 + 粘贴路径；失败不回廷根）→ 轻松线或自拟 wanderer → 常驻 brief → 上列工具 → IC 点名上场 → YAML 离场 → `/retry` 回到上一 check 前（换场 extra 保留）。
 
-1. **开局卡以用户包为先，再选人、选地**
-   - `~/.dsh/airp-packs` 里有包时，默认选上次玩的用户包，官方 demo 降到「示例」分组。
-   - 选完包再问模式：轻松默认线，或自拟穿越者（年龄 / 出身 / 关系）。自拟档与默认主角同一时间线切入，两条线可能相交。
-   - 粘贴路径失败要说清缺哪个文件，不要静默掉回廷根。
-2. **收据给玩家看，不给作者看**
-   - `TurnResult.receipt` 用包的词（对抗失败、破妄未成），不要把 `p` / `u` / 指针泄漏进叙述。
-   - 第一刀因果：正文声称晋升 / 定品，但本回合无 check → 收据标 `UNCAUSED_CLAIM`，State 不变。这是 Kernel 行为，不是定江专属。
-3. **`/retry` 与在场**
-   - 回放到上一 check 前；委托 fact 保留。对手从 `roster` 进场、从 check 退场，不要误伤 `present` 里的盟友。
+**0.1.0 之后再加深（不要挡 tag）：**
 
-DoD：用 **scaffold 出来的新包**（不是定江）走完「接委托 → 一次对抗 → `/retry`」。夹具测试继续打 `TurnResult`，但新行为的回归夹具应是 `templates/community-pack` 的变体。
+1. **开局卡以用户包为先** — last-played 默认；官方 demo 降到示例分组。
+2. **收据给玩家看** — 包的词，不泄漏 `p`/`u`；声称晋升但无 check → `UNCAUSED_CLAIM`（尚未做）。
+
+
+DoD：用 **scaffold 出来的新包**（不是定江）走完「接委托 → 一次对抗 → `/retry`」。引擎单测继续打 `TurnResult`；新行为的回归用 `templates/community-pack` 的变体，不要只拿定江当证明。
 
 ## 生产者（`airp-author`）
 
@@ -66,7 +79,7 @@ DoD：空会话走完八问，产出的包能被消费者开局卡选中；`pack
 
 ## 世界约束（引擎层，不是某个 demo）
 
-类 DnD 本子的爽感是：**前期时空有硬边界，后期用鉴定把边界拆掉**。这必须进 `WorldKernel`，否则每个生产者会用 lore 散文各写一套，模型一回合日行千里。
+类 DnD 本子的爽感是：**前期时空有硬边界，后期用鉴定把边界拆掉**。Kernel **已经有** `places` / `clock.beat` / `TRAVEL_BLOCKED` / `need`（mobility 或 `facts.k`）。下面是合同备忘，不是未开工清单。缺的是 community-pack **变体回归**（不要用定江地图当 DoD）。
 
 ST 对照（只借语义，不借实现）：
 
@@ -97,13 +110,13 @@ Canon.pack.yaml
 - 解锁：任意 check 把 `characters.pc.mobility` +1。轻功、载具、飞车都是同一个数字。
 - 生产者八问不加第三屏；scaffold 写出空 `places`，作者填边或整段删掉。
 
-DoD：夹具用 **模板包变体**（A→B 要 4 beat、mobility=0 被拒；mobility≥1 一次 check 到达）。不要用定江地图当回归。
+0.1.0：内存 canon + 定江边图已覆盖 Kernel。**tag 之后：** 用 `templates/community-pack` 变体做回归（A→B 要 4 beat、mobility=0 被拒），不要把定江地图当唯一 DoD。
 
 消费者：brief 带「现在在哪、今天还能走多远」；模型口头瞬移无事件则地点不变。
 
 生产者：只填边的 `beats` / `need`，不必写旅行引擎。`validate` 检查边指向已有 scene lore。
 
-## 夹具（demo，非主线）
+## 官方示例（demo，非主线）
 
 `lotm-tingen` / `jzdh-dingjiang` 只负责：
 
@@ -111,15 +124,15 @@ DoD：夹具用 **模板包变体**（A→B 要 4 beat、mobility=0 被拒；mob
 - Host 回归（brief 按包装配、IC 选对手、handoff）
 - 文档里的「看起来像什么」
 
-维护规则：委托脊柱坏了就修；设定集变厚不进 git 主线。`_extract.md` 与按章审计是作者工作稿，分别留在 pack 下划线文件 / 世界书目录，不进 `index.yaml`。不要为了夹具剧情给 Kernel 加神功专属 check。
+维护规则：开场委托走不通就修；设定集变厚不进 git 主线。`_extract.md` 与按章审计是作者工作稿，分别留在 pack 下划线文件 / 世界书目录，不进 `index.yaml`。不要为了示例剧情给 Kernel 加神功专属 check。
 
-## 以后（v1+，见 docs/engine.md §12）
+## 以后（0.1.0 之后，见 docs/engine.md §12）
 
 第二种作者或第二种编译源出现再谈：
 
 - Worldsmith（一句话 → check/lore，仍要人审）
 - `canon.edit` / provisional 晋升
 - ST 资产语义迁移
-- `present` seam / 世界时钟
+- 日历世界钟（不是 `clock.beat`）；收据对玩家隐瞒掷骰数字；`UNCAUSED_CLAIM`
 
 明确不做：把 ST 请回宿主、SaaS 市场、生图引擎、在故事会话里热改 Cordis、把官方 demo 写成连载主线。
