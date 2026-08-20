@@ -4,7 +4,7 @@ DeepSeek Harness 上的 AIRP 引擎：深 module `WorldKernel` + 浅 Host adapte
 
 - GitHub：https://github.com/clarkzhao/dsh-airp
 - topic：`dsh-plugin`
-- 规范：[docs/engine.md](docs/engine.md) · 术语：[docs/glossary.md](docs/glossary.md) · 写包：[docs/worldbook-authoring.md](docs/worldbook-authoring.md) · 规划：[ROADMAP.md](ROADMAP.md)
+- 规范：[docs/engine.md](docs/engine.md) · agent 入口：[AGENTS.md](AGENTS.md) · 术语：[docs/glossary.md](docs/glossary.md) · 写包：[docs/worldbook-authoring.md](docs/worldbook-authoring.md) · 规划：[ROADMAP.md](ROADMAP.md)
 
 一句话：LLM 只提案和叙述；规则把 State 从 T 写成 T+1。
 
