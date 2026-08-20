@@ -65,6 +65,26 @@ test('dingjiang boot brief uses temple scene lore and pack tags', async () => {
   assert.doesNotMatch(brief, /黑荆棘安保公司/)
 })
 
+test('live indexText follows scene after a travel check', async () => {
+  const rt = await openRuntime({
+    packsDir,
+    sessionId: 'live-brief',
+    choice: { kind: 'bundled', packId: 'jzdh-dingjiang' },
+  })
+  assert.match(rt.indexText(), /scene: jzdh.dangkang/)
+  assert.match(rt.indexText(), /当康庙/)
+  const walk = rt.dispatch({
+    kind: 'tool',
+    name: 'check_propose',
+    args: { checkId: 'travel-on-foot', actors: { actor: 'ding-songyan' }, patch: { scene: 'jzdh.luanzanggang' } },
+  })
+  assert.equal(walk.ok, true, walk.text)
+  const live = rt.indexText()
+  assert.match(live, /scene: jzdh.luanzanggang/)
+  assert.match(live, /乱葬岗/)
+  assert.match(live, /commission=pending/)
+})
+
 test('custom path loads that directory', async () => {
   const choice = resolveBootChoice({
     answers: [{ id: 'boot_pack', selected: [PICK_CUSTOM], custom: join(packsDir, 'lotm-tingen') }],

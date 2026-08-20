@@ -59,7 +59,7 @@
 
 一条 adapter 不够开新 port（codebase-design：一个 adapter 只是假设缝）。以下全部落在现有 Module / Interface 上：
 
-1. **brief seam 加深（对应最缺 1）**：`HostRuntime` 已有 `bootBrief()`（`runtime.ts:72-101`）但只发一次。加深为可重发/自动重发：a) travel（check/gm 写 `scene`）成功时，Adapter 自动把新场景 lore 注入本回合（等价于对 `index.scenes` 的新 key 做一次 `turn({type:'lore'})`，仍走 `loreBudgetChars` 预算，不扫关键词）；b) 换场或每 N 回合重发一行「scene / present / facts / clock.beat」回显（`travelLine` 已有雏形 `runtime.ts:103-115`）。这是对现有 `brief`/`turn` 的加深，不引入扫描器语义。
+1. **brief seam 加深（对应最缺 1）**：`systemPrompt.context('airp:index')` 每轮调用 `indexText()`。把 scene / present / facts / 当前场景 lore / 委托 放进 `indexText()`（仍走 `turn({type:'lore'})` 预算）。`bootBrief()` 只多开场引导句。不扫关键词、不加新 port。
 2. **turn/match 的在场语义加深（对应最缺 2）**：`present` 进 `DEFAULT_GUARDED`。引擎不猜谁离场。作者在 check `outcomes.apply` 写 `present: "-{defender}"`（或整表替换）。`fact` 写 `present` → `CHANNEL_VIOLATION`。`match` 谓词不变，离场后自然不再命中。
 3. **kernel 因果抽查落地（对应最缺 3）**：`turn` 之后把叙述文本与 `events` 对照（声称晋升/定品但本回合无 check 事件），收据层标 `UNCAUSED_CLAIM`、State 不变（ROADMAP.md:42-43 已写死是 Kernel 行为）。这是 engine.md §5 双通道的收尾，也是对「模型口头改判」攻击面（engine.md:342-344）的第一道真实阻断。
 
