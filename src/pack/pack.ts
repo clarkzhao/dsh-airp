@@ -2,6 +2,7 @@ import { readdir, readFile } from 'node:fs/promises'
 import { basename, join } from 'node:path'
 import yaml from 'js-yaml'
 import { DEFAULT_GUARDED, type Canon, type CharacterCard, type CheckDef, type Json, type LoreDoc, type OpeningSeat, type PackMeta, type Predicate, type WorldState } from '../kernel/types.ts'
+import { parsePlaceNeed } from '../kernel/world-kernel.ts'
 
 export type PackDiagnosticCode =
   | 'MISSING_FILE'
@@ -199,8 +200,8 @@ export function validatePack(canon: Canon): PackDiagnostic[] {
       if (!known.has(to)) {
         out.push({ code: 'BAD_PLACE', severity: 'warning', message: `places.${from} → ${to} is not an index scene` })
       }
-      if (edge?.need && !/^(mobility)\s*(>=|>|<=|<|=)\s*-?\d+(?:\.\d+)?$/.test(edge.need.trim())) {
-        out.push({ code: 'BAD_PLACE', message: `places.${from} → ${to} need must be mobility>=N` })
+      if (edge?.need && !parsePlaceNeed(edge.need).ok) {
+        out.push({ code: 'BAD_PLACE', message: `places.${from} → ${to} need must be mobility>=N or facts.k=v / k!=v` })
       }
     }
   }

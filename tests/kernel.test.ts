@@ -153,6 +153,35 @@ test('places graph blocks a hop that needs mobility', () => {
   assert.equal(ok.state.clock?.beat, 4)
 })
 
+test('places need can gate travel on a fact inequality', () => {
+  const k = new WorldKernel(canon({
+    meta: {
+      id: 'watch-pack',
+      title: '更',
+      rng: 'none',
+      entry_scene: 'pack.a',
+      places: {
+        'pack.a': { edges: { 'pack.b': { beats: 2, need: 'watch!=夜' } } },
+        'pack.b': { edges: {} },
+      },
+    },
+    checks: { travel: travelCheck() },
+    index: { checks: ['travel'], characters: ['klein'], lore: ['axioms'] },
+  }))
+  const night = state({ scene: 'pack.a', present: ['klein'], facts: { watch: '夜' }, clock: { beat: 0 } })
+  const blocked = k.turn(night, { type: 'check', checkId: 'travel', actors: { actor: 'klein' } })
+  assert.equal(blocked.ok, false)
+  if (blocked.ok) return
+  assert.equal(blocked.code, 'TRAVEL_BLOCKED')
+  assert.equal(blocked.state.scene, 'pack.a')
+  const day = state({ scene: 'pack.a', present: ['klein'], facts: { watch: '日中' }, clock: { beat: 0 } })
+  const ok = k.turn(day, { type: 'check', checkId: 'travel', actors: { actor: 'klein' } })
+  assert.equal(ok.ok, true)
+  if (!ok.ok) return
+  assert.equal(ok.state.scene, 'pack.b')
+  assert.equal(ok.state.clock?.beat, 2)
+})
+
 test('fact targeting present is CHANNEL_VIOLATION; check apply can drop a defender', () => {
   const k = new WorldKernel(canon({
     checks: {

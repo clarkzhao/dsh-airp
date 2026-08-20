@@ -528,19 +528,46 @@ function travelBlocked(canon: Canon, state: WorldState, dest: string): string | 
   if (!edge) return `no edge ${state.scene} → ${dest}`
   const need = edge.need?.trim()
   if (!need) return undefined
-  const match = /^(mobility)\s*(>=|>|<=|<|=)\s*(-?\d+(?:\.\d+)?)$/.exec(need)
-  if (!match) return `bad travel need ${need}`
-  const pc = state.present[0]
-  const raw = pc ? state.characters[pc]?.mobility : undefined
-  const have = typeof raw === 'number' ? raw : 0
-  const want = Number(match[3])
-  const op = match[2]!
-  const ok =
-    op === '>=' ? have >= want
-      : op === '>' ? have > want
-        : op === '<=' ? have <= want
-          : op === '<' ? have < want
-            : have === want
+  const blocked = needUnmet(state, need)
+  if (blocked === undefined) return undefined
+  return blocked
+}
+
+const MOBILITY_NEED = /^(mobility)\s*(>=|>|<=|<|=)\s*(-?\d+(?:\.\d+)?)$/
+const FACT_NEED = /^(?:facts\.)?([A-Za-z_][\w]*)\s*(!=|=)\s*(.+)$/
+
+export function parsePlaceNeed(need: string): { ok: true } | { ok: false } {
+  const text = need.trim()
+  if (MOBILITY_NEED.test(text) || FACT_NEED.test(text)) return { ok: true }
+  return { ok: false }
+}
+
+function needUnmet(state: WorldState, need: string): string | undefined {
+  const text = need.trim()
+  const mobility = MOBILITY_NEED.exec(text)
+  if (mobility) {
+    const pc = state.present[0]
+    const raw = pc ? state.characters[pc]?.mobility : undefined
+    const have = typeof raw === 'number' ? raw : 0
+    const want = Number(mobility[3])
+    const op = mobility[2]!
+    const ok =
+      op === '>=' ? have >= want
+        : op === '>' ? have > want
+          : op === '<=' ? have <= want
+            : op === '<' ? have < want
+              : have === want
+    if (ok) return undefined
+    return `need ${text} (have ${have})`
+  }
+  const fact = FACT_NEED.exec(text)
+  if (!fact) return `bad travel need ${text}`
+  const key = fact[1]!
+  const op = fact[2]!
+  const want = fact[3]!.trim()
+  const have = state.facts[key]
+  const haveText = have === undefined || have === null ? '' : String(have)
+  const ok = op === '!=' ? haveText !== want : haveText === want
   if (ok) return undefined
-  return `need ${need} (have ${have})`
+  return `need ${text} (have ${haveText || '(empty)'})`
 }
