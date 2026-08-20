@@ -18,13 +18,17 @@
 - 夹具：`lotm-tingen`、`jzdh-dingjiang`（委托脊柱，不是连载）
 - 文档：`docs/engine.md`、`docs/worldbook-authoring.md`、[`AGENTS.md`](AGENTS.md)
 
-**外面没有（不要为了 0.1.0 做）**
+**外面没有（不要为了打 tag 再做）**
 
 - Worldsmith / `canon.edit` / play 里 mint 角色
 - ST 扫描器、宏、`{{setvar}}`、Silly-Map
-- 世界时钟、因果抽查阻断（`UNCAUSED_CLAIM`）、收据对玩家隐瞒 `p`/`u`
+- **日历**世界钟（`clock.beat` 已有，不是这个）
+- 因果抽查阻断（`UNCAUSED_CLAIM`）、收据对玩家隐瞒 `p`/`u`（现在 `receiptText` 仍带数字，0.1.0 接受）
+- 开局卡「用户包为先 / last-played」（仍默认官方 demo 靠前）
 - 官方 demo 写成全书；社区包 PR 进 `packs/`
 - play 里 bash / `cordis_*`
+
+`AGENTS.md` 在 PR #17，合入 main 后再算 0.1.0 文档齐。
 
 欢迎的 issue：
 
@@ -45,17 +49,13 @@
 
 消费者只看见：选包 → 进场 brief → `lore_get` / `state_read` / `check_propose` / `state_propose_fact` → `/retry`。看不见 validate / scaffold。
 
-加深现有缝，不开假缝：
+**0.1.0 已有：** 选包（bundled + 用户目录 + 粘贴路径；失败不回廷根）→ 轻松线或自拟 wanderer → 常驻 brief → 上列工具 → IC 点名上场 → YAML 离场 → `/retry` 回到上一 check 前（换场 extra 保留）。
 
-1. **开局卡以用户包为先，再选人、选地**
-   - `~/.dsh/airp-packs` 里有包时，默认选上次玩的用户包，官方 demo 降到「示例」分组。
-   - 选完包再问模式：轻松默认线，或自拟穿越者（年龄 / 出身 / 关系）。自拟档与默认主角同一时间线切入，两条线可能相交。
-   - 粘贴路径失败要说清缺哪个文件，不要静默掉回廷根。
-2. **收据给玩家看，不给作者看**
-   - `TurnResult.receipt` 用包的词（对抗失败、破妄未成），不要把 `p` / `u` / 指针泄漏进叙述。
-   - 第一刀因果：正文声称晋升 / 定品，但本回合无 check → 收据标 `UNCAUSED_CLAIM`，State 不变。这是 Kernel 行为，不是定江专属。
-3. **`/retry` 与在场**
-   - 回放到上一 check 前；委托 fact 保留。对手从 `roster` 进场、从 check 退场，不要误伤 `present` 里的盟友。
+**0.1.0 之后再加深（不要挡 tag）：**
+
+1. **开局卡以用户包为先** — last-played 默认；官方 demo 降到示例分组。
+2. **收据给玩家看** — 包的词，不泄漏 `p`/`u`；声称晋升但无 check → `UNCAUSED_CLAIM`（尚未做）。
+
 
 DoD：用 **scaffold 出来的新包**（不是定江）走完「接委托 → 一次对抗 → `/retry`」。夹具测试继续打 `TurnResult`，但新行为的回归夹具应是 `templates/community-pack` 的变体。
 
@@ -79,7 +79,7 @@ DoD：空会话走完八问，产出的包能被消费者开局卡选中；`pack
 
 ## 世界约束（引擎层，不是某个 demo）
 
-类 DnD 本子的爽感是：**前期时空有硬边界，后期用鉴定把边界拆掉**。这必须进 `WorldKernel`，否则每个生产者会用 lore 散文各写一套，模型一回合日行千里。
+类 DnD 本子的爽感是：**前期时空有硬边界，后期用鉴定把边界拆掉**。Kernel **已经有** `places` / `clock.beat` / `TRAVEL_BLOCKED` / `need`（mobility 或 `facts.k`）。下面是合同备忘，不是未开工清单。缺的是 community-pack **变体回归**（不要用定江地图当 DoD）。
 
 ST 对照（只借语义，不借实现）：
 
@@ -110,7 +110,7 @@ Canon.pack.yaml
 - 解锁：任意 check 把 `characters.pc.mobility` +1。轻功、载具、飞车都是同一个数字。
 - 生产者八问不加第三屏；scaffold 写出空 `places`，作者填边或整段删掉。
 
-DoD：夹具用 **模板包变体**（A→B 要 4 beat、mobility=0 被拒；mobility≥1 一次 check 到达）。不要用定江地图当回归。
+0.1.0：内存 canon + 定江边图已覆盖 Kernel。**tag 之后：** 用 `templates/community-pack` 变体做回归（A→B 要 4 beat、mobility=0 被拒），不要把定江地图当唯一 DoD。
 
 消费者：brief 带「现在在哪、今天还能走多远」；模型口头瞬移无事件则地点不变。
 
@@ -133,6 +133,6 @@ DoD：夹具用 **模板包变体**（A→B 要 4 beat、mobility=0 被拒；mob
 - Worldsmith（一句话 → check/lore，仍要人审）
 - `canon.edit` / provisional 晋升
 - ST 资产语义迁移
-- 世界时钟；收据对玩家隐瞒掷骰数字
+- 日历世界钟（不是 `clock.beat`）；收据对玩家隐瞒掷骰数字；`UNCAUSED_CLAIM`
 
 明确不做：把 ST 请回宿主、SaaS 市场、生图引擎、在故事会话里热改 Cordis、把官方 demo 写成连载主线。

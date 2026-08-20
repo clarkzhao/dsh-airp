@@ -363,8 +363,8 @@ Adapter 测试只覆盖：工具名译成 intent、play 掩码看不见 validate
 
 | 阶段 | 做 | 不做 |
 |---|---|---|
-| v0 | 本文 DoD | Worldsmith、市场、生图、全书、`present`、`canon.edit` |
-| v1 | Worldsmith、provisional 晋升、因果抽查阻断、第二种表现出现再提 present seam | SaaS |
-| v2 | 语义迁移 ST 资产、可选世界时钟 | 把 ST 请回宿主 |
+| 0.1.0 | Kernel + Host + 两份夹具可玩一晚；`present` 已 guard | Worldsmith、市场、生图、全书、`canon.edit`、日历钟、`UNCAUSED_CLAIM` |
+| 之后 | Worldsmith、provisional 晋升、因果抽查阻断、收据去骰 | SaaS |
+| 更后 | 语义迁移 ST 资产、可选日历钟 | 把 ST 请回宿主 |
 
 实现顺序：Kernel + 对抗单测 → `lotm-tingen` → Adapter + `airp-play` → `/retry` `/gm` → `airp-author` + validate → 手玩委托。
