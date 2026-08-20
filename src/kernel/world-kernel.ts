@@ -543,7 +543,8 @@ export function parsePlaceNeed(need: string): { ok: true } | { ok: false } {
 }
 
 function needUnmet(state: WorldState, need: string): string | undefined {
-  const mobility = MOBILITY_NEED.exec(need)
+  const text = need.trim()
+  const mobility = MOBILITY_NEED.exec(text)
   if (mobility) {
     const pc = state.present[0]
     const raw = pc ? state.characters[pc]?.mobility : undefined
@@ -557,10 +558,10 @@ function needUnmet(state: WorldState, need: string): string | undefined {
             : op === '<' ? have < want
               : have === want
     if (ok) return undefined
-    return `need ${need} (have ${have})`
+    return `need ${text} (have ${have})`
   }
-  const fact = FACT_NEED.exec(need)
-  if (!fact) return `bad travel need ${need}`
+  const fact = FACT_NEED.exec(text)
+  if (!fact) return `bad travel need ${text}`
   const key = fact[1]!
   const op = fact[2]!
   const want = fact[3]!.trim()
@@ -568,5 +569,5 @@ function needUnmet(state: WorldState, need: string): string | undefined {
   const haveText = have === undefined || have === null ? '' : String(have)
   const ok = op === '!=' ? haveText !== want : haveText === want
   if (ok) return undefined
-  return `need ${need} (have ${haveText || '(empty)'})`
+  return `need ${text} (have ${haveText || '(empty)'})`
 }
