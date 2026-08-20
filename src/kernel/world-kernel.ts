@@ -112,7 +112,7 @@ export class WorldKernel {
     const guarded = this.canon.guarded.length
       ? [...new Set([...DEFAULT_GUARDED, ...this.canon.guarded])]
       : DEFAULT_GUARDED
-    if (isGuarded(pointer, guarded)) {
+    if (isGuarded(pointer, guarded) || clonesGuardedRoot(pointer, guarded)) {
       return fail(state, 'CHANNEL_VIOLATION', `${pointer} is a guarded numeric field`)
     }
     writePointer(state, pointer, value)
@@ -402,6 +402,15 @@ function applyPresent(current: string[], value: Json): string[] {
     return [...value]
   }
   return current
+}
+
+function clonesGuardedRoot(pointer: string, patterns: readonly string[]): boolean {
+  if (!pointer.startsWith('facts.')) return false
+  const rest = pointer.slice('facts.'.length)
+  if (!rest || rest.startsWith('__')) return false
+  const root = rest.split('.')[0]
+  if (!root) return false
+  return patterns.some((pat) => pat === root || pat.startsWith(`${root}.`))
 }
 
 function isGuarded(pointer: string, patterns: readonly string[]): boolean {

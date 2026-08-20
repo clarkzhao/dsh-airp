@@ -335,6 +335,25 @@ test('weather fact is allowed and writes a fact event', () => {
   assert.equal(result.events[0]?.type, 'fact')
 })
 
+test('fact cannot clone guarded roots under facts', () => {
+  const k = kernel()
+  const before = state()
+  for (const pointer of ['facts.scene', 'facts.present', 'facts.clock']) {
+    const result = k.turn(before, { type: 'fact', pointer, value: 'elsewhere' })
+    assert.equal(result.ok, false, pointer)
+    if (result.ok) return
+    assert.equal(result.code, 'CHANNEL_VIOLATION')
+    assert.deepEqual(result.events, [])
+    assert.equal(result.state.scene, before.scene)
+    assert.deepEqual(result.state.present, before.present)
+    assert.equal(result.state.facts.scene, undefined)
+    assert.equal(result.state.facts.present, undefined)
+    assert.equal(result.state.facts.clock, undefined)
+  }
+  const weather = k.turn(before, { type: 'fact', pointer: 'facts.weather', value: '雨' })
+  assert.equal(weather.ok, true)
+})
+
 test('unknown check is UNKNOWN_CHECK', () => {
   const k = kernel()
   const result = k.turn(state(), { type: 'check', checkId: 'nope', actors: {} })

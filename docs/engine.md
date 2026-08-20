@@ -242,8 +242,8 @@ v0 默认 ξ：存档种子派生 `u ~ Uniform(0,1)`，`u < p` 成功。测试�
 
 | 字段 | 谁能写 |
 |---|---|
-| 序列、消化、失控、资源、胜负、晋升 | 仅 check / gm |
-| 天气、在场、已揭示设定 | fact（自动写）/ correct |
+| 序列、消化、失控、资源、胜负、晋升、场景、在场、clock.beat | 仅 check / gm |
+| 天气、已揭示设定 | fact / correct。不可写 `facts.scene` / `facts.present` / `facts.clock`（受保护根的克隆） |
 | Canon 文本 | 作者改文件 + `Pack.validate`，play 无写口 |
 
 叙述后抽查「你晋升了」但无对应事件：v0 只打警告，不阻断、不改 State。

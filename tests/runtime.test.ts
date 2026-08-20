@@ -74,6 +74,19 @@ test('play role cannot pack_validate; author can', async () => {
   assert.equal(ok.ok, true)
 })
 
+test('live brief does not grow facts.scene from a rejected clone', async () => {
+  const rt = await runtime()
+  const blocked = rt.dispatch({
+    kind: 'tool',
+    name: 'state_propose_fact',
+    args: { pointer: 'facts.scene', value: 'elsewhere' },
+  })
+  assert.equal(blocked.ok, false)
+  assert.match(blocked.text, /CHANNEL_VIOLATION/)
+  assert.equal(rt.snapshot().state.facts.scene, undefined)
+  assert.doesNotMatch(rt.indexText(), /facts\.scene=/)
+})
+
 test('events are the source of truth for retry', async () => {
   const rt = await runtime()
   rt.dispatch({ kind: 'tool', name: 'state_propose_fact', args: { pointer: 'facts.weather', value: '雨' } })
