@@ -1,7 +1,7 @@
 # DSH AIRP 引擎方案
 
 - 日期：2026-08-18
-- 状态：v1.1（按 codebase-design 收成单一深 module；删假缝）
+- 状态：v1.1（按 codebase-design 收成单一深 module；删假缝）。行为以代码为准。agent 入口 [`AGENTS.md`](../AGENTS.md)；年表过期时改本文件 §12，不要在两处各写一套。
 - 配套：[ADR-0008](./adr/0008-st-as-reference-and-asset-mine.md) … [ADR-0011](./adr/0011-check-engine-declarative-and-optional-conditions.md)（从 notes/tavern-ai-native 收编）
 - 证据：SillyTavern v1.18.0；DSH 0.1.0-rc.6
 

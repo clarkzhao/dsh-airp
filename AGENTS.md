@@ -1,6 +1,6 @@
 # AGENTS.md
 
-给即将改这个仓的 coding agent：先读本文件。合同（Intent 全集、收据、对抗表）在 [`docs/engine.md`](docs/engine.md)；写包在 [`docs/worldbook-authoring.md`](docs/worldbook-authoring.md)。以**代码 + 本文件**为准。`engine.md` §12 仍写「v0 没有 present port」——旧句；`present` 已在 `DEFAULT_GUARDED`，离场由 pack YAML 声明。
+给即将改这个仓的 coding agent：先读本文件。合同（Intent 全集、收据、对抗表）在 [`docs/engine.md`](docs/engine.md)；写包在 [`docs/worldbook-authoring.md`](docs/worldbook-authoring.md)。行为以**代码**为准；本文件是入口，不另立合同。`present` 已在 `DEFAULT_GUARDED`，离场由 pack YAML 声明。
 
 ## 原则
 
