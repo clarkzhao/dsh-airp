@@ -21,5 +21,4 @@ outcomes:
   failure:
     apply:
       facts.last_contest: defender
-      present: "-{defender}"
       characters.{attacker}.cost: "+0.15"

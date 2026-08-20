@@ -212,6 +212,9 @@ test('custom traveler shares Ding arrival night and does not steal his card', as
   })
   const state = rt.snapshot().state
   assert.equal(state.present[0], 'wanderer')
+  assert.equal(state.present.length, 1)
+  assert.ok(!state.present.includes('xu-changan'))
+  assert.ok(state.characters['xu-changan'])
   assert.equal(state.scene, 'jzdh.zongmen')
   assert.equal(state.facts.pc_name, '过路刀客')
   assert.equal(state.facts.pc_age, '22')
@@ -231,5 +234,7 @@ test('custom traveler shares Ding arrival night and does not steal his card', as
   if (moth.result.ok && moth.result.events[0]?.type === 'check') {
     assert.equal(moth.result.events[0].actors.attacker, 'wanderer')
   }
+  // u=0.81 > p → failure keeps the moth on stage (contest-wushu only removes the defender on success)
+  assert.ok(rt.snapshot().state.present.includes('er-ren'))
   assert.ok(!rt.snapshot().state.present.includes('ding-songyan'))
 })

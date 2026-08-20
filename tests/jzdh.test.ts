@@ -16,6 +16,11 @@ test('jzdh-dingjiang commission spine: fact, contest, cost, retry', async () => 
   assert.ok(state.present.includes('ding-songyan'))
   assert.ok(!state.present.includes('er-ren'))
   assert.ok(state.characters['er-ren'])
+  // opening.present is only the host; the rest are roster (staged on IC mention)
+  assert.ok(!state.present.includes('xu-changan'))
+  assert.ok(state.characters['xu-changan'])
+  assert.ok(!state.present.includes('zheng-zhuxi'))
+  assert.ok(state.characters['zheng-zhuxi'])
   assert.equal(state.characters['ding-songyan']?.grade, 0)
   assert.equal(state.characters['ding-songyan']?.insight, 0.4)
 
@@ -39,15 +44,23 @@ test('jzdh-dingjiang commission spine: fact, contest, cost, retry', async () => 
   })
   assert.equal(blocked.ok, false)
 
+  // With a single character on stage (present=[ding-songyan] now), kernel
+  // resolveActors auto-fills missing actor slots from present[0], so an
+  // attacker-only contest forces a self-check (ENGINE TODO: require a distinct
+  // defender). It must still not stage roster characters like er-ren.
   const idleFight = play.dispatch({
     kind: 'ic',
     tags: ['contest'],
     actors: { attacker: 'ding-songyan' },
     u: 0.81,
   })
-  assert.equal(idleFight.forced, false)
+  assert.equal(idleFight.forced, true)
+  if (idleFight.forced && idleFight.result.events[0]?.type === 'check') {
+    assert.equal(idleFight.result.events[0].actors.defender, 'ding-songyan')
+  }
   assert.ok(!play.snapshot().state.present.includes('er-ren'))
 
+  // ding vs moth: p≈0.004, so u=0.81 lands on failure → the moth stays on stage
   const contest = play.dispatch({
     kind: 'ic',
     tags: ['contest'],
@@ -56,6 +69,24 @@ test('jzdh-dingjiang commission spine: fact, contest, cost, retry', async () => 
   })
   assert.equal(contest.forced, true)
   assert.equal(contest.result.events[0]?.type, 'check')
+  if (contest.result.events[0]?.type === 'check') {
+    assert.equal(contest.result.events[0].outcome, 'failure')
+  }
+  assert.ok(play.snapshot().state.present.includes('er-ren'))
+  assert.ok(play.snapshot().state.present.includes('ding-songyan'))
+
+  // u=0 below p → success → the defeated moth is removed from stage
+  const win = play.dispatch({
+    kind: 'ic',
+    tags: ['contest'],
+    actors: { attacker: 'ding-songyan', defender: 'er-ren' },
+    u: 0,
+  })
+  assert.equal(win.forced, true)
+  assert.equal(win.result.events[0]?.type, 'check')
+  if (win.result.events[0]?.type === 'check') {
+    assert.equal(win.result.events[0].outcome, 'success')
+  }
   assert.ok(!play.snapshot().state.present.includes('er-ren'))
   assert.ok(play.snapshot().state.present.includes('ding-songyan'))
 

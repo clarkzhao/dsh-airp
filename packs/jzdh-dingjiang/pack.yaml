@@ -21,8 +21,8 @@ tags:
   powang: [破妄, 烛照, 鉴别, 真伪, 阴眼, 识破]
   cost: [代价, 反噬, 侵蚀, 入局, 阴气, 蛾种近身]
 opening:
-  present: [ding-songyan, xu-changan]
-  roster: [er-ren]
+  present: [ding-songyan]
+  roster: [xu-changan, zheng-zhuxi, er-ren]
   playable: [ding-songyan, xu-changan, ding-qingyan, zheng-zhuxi, ren-youyang, su-qingli]
   revealed: [axioms, jzdh-dangkang, jzdh-commission]
   facts:
