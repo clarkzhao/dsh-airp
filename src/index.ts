@@ -52,10 +52,10 @@ export function apply(ctx: Context, config: Config): void {
   }
 
   const sessionPreset = (agent: {
-    session?: { header?: { agentPreset?: string }; events?: ReadonlyArray<{ type?: string; data?: { agentPreset?: string } }> }
+    session?: { header?: { agentPreset?: string }; events?: ReadonlyArray<{ type?: string; data?: unknown }> }
     ctx?: unknown
   }) => {
-    const fromLog = presetFromSession(agent.session)
+    const fromLog = presetFromSession(agent.session as Parameters<typeof presetFromSession>[0])
     if (fromLog) return fromLog
     const presets = ctx.get('agentPresets')
     if (presets && agent.ctx) return presets.composedPreset(agent.ctx as never)
@@ -219,8 +219,8 @@ export function apply(ctx: Context, config: Config): void {
       },
     }
 
-    const runTool = async (name: string, args: Record<string, unknown>, exec: { agent?: { session?: { id?: string; header?: { agentPreset?: string }; events?: ReadonlyArray<{ type?: string; data?: { agentPreset?: string } }> }; id?: string; ctx?: unknown } }) => {
-      const denied = denyAuthorTool(name, roleFromPreset(sessionPreset(exec.agent ?? {})))
+    const runTool = async (name: string, args: Record<string, unknown>, exec?: { agent?: { session?: { id?: string; header?: { agentPreset?: string }; events?: ReadonlyArray<{ type?: string; data?: unknown }> }; id?: string; ctx?: unknown } }) => {
+      const denied = denyAuthorTool(name, roleFromPreset(sessionPreset(exec?.agent ?? {})))
       if (denied) throw new Error(denied)
       if (name === 'pack_validate') {
         const catalog = await catalogOf()
@@ -244,7 +244,7 @@ export function apply(ctx: Context, config: Config): void {
           }
         }
       }
-      const rt = await loadRuntime(sessionKey(exec))
+      const rt = await loadRuntime(sessionKey(exec ?? {}))
       const out = rt.dispatch({ kind: 'tool', name, args })
       if (!out.ok && name !== 'pack_validate') throw new Error(out.text)
       return name === 'pack_validate' || name === 'check_match' ? JSON.parse(out.text) as Json : out.text
