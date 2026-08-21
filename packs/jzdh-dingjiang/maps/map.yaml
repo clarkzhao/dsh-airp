@@ -1,0 +1,157 @@
+# 剑烛大荒 · 地理（pack 数据，不是 Kernel 旅行图）
+# 玩法边仍只认 pack.yaml places。这里给人看、给模型按 lore_get 取。
+# 坐标是示意 0–100，不是地球经纬。北在上。
+
+id: jzdh-map
+title: 大荒与定江府
+note: 出府去炎京、岳江不是当日脚程。城内一个时辰；乱葬岗两个时辰，午前出、未时前回门。
+
+layers:
+  world:
+    image: dahuang-world.jpg
+    extent: { x: 0, y: 0, w: 100, h: 100 }
+  city:
+    image: dingjiang-city.jpg
+    parent: dingjiang
+    extent: { x: 0, y: 0, w: 100, h: 100 }
+
+regions:
+  - id: dazhao
+    name: 大赵
+    kind: realm
+    layer: world
+    xy: [52, 62]
+    notes: 南渡偏安近二百六十年，都炎京，年号建武。皇室姓洪。
+  - id: xinyu
+    name: 新虞
+    kind: realm
+    layer: world
+    xy: [48, 28]
+    notes: 北三国之一。三身 / 寿麻 / 靖人，帝舜后裔。
+  - id: gan
+    name: 甘
+    kind: realm
+    layer: world
+    xy: [22, 22]
+    notes: 北三国之一。大人 / 君子 / 周饶。自拟穿越者林晚登籍贯在此一带中型城镇。
+  - id: feng
+    name: 封
+    kind: realm
+    layer: world
+    xy: [72, 30]
+    notes: 北三国之一。三首 / 犬戎 / 戎。
+  - id: ba
+    name: 巴
+    kind: realm
+    layer: world
+    xy: [28, 68]
+    notes: 边荒。
+  - id: tiandu
+    name: 天毒
+    kind: realm
+    layer: world
+    xy: [12, 72]
+    notes: 边荒。
+
+places:
+  - id: yanjing
+    name: 炎京
+    kind: capital
+    layer: world
+    region: dazhao
+    xy: [50, 48]
+    notes: 大赵都城。出定江府不是当日脚程。
+  - id: dingjiang
+    name: 定江府
+    kind: prefecture
+    layer: world
+    region: dazhao
+    xy: [58, 70]
+    scene: null
+    notes: 宁州府治临江县，大江之畔。切片舞台。
+  - id: yuejiang
+    name: 岳江府
+    kind: prefecture
+    layer: world
+    region: dazhao
+    xy: [42, 66]
+    notes: 丁家自称大半年前自岳江府投亲而来。出定江不是当日脚程。仙洞山在其境内。
+  - id: wangtiandao
+    name: 望天门岛
+    kind: island
+    layer: world
+    region: dazhao
+    xy: [62, 74]
+    notes: 定江江心小岛。绝地天通后曾能见天界景象。图上勿画成海外大陆。
+
+  - id: jzdh.dangkang
+    name: 当康庙
+    kind: scene
+    layer: city
+    scene: jzdh.dangkang
+    xy: [38, 48]
+    inside_wall: true
+    beats_from_entry: 0
+    notes: 开场。大市集，猪形当康神像。临江是县名，不是穿越者籍贯。
+  - id: jzdh.dangjia
+    name: 城余巷丁家
+    kind: scene
+    layer: city
+    scene: jzdh.dangjia
+    xy: [28, 56]
+    inside_wall: true
+    beats_from_entry: 1
+    notes: 城内一个时辰。
+  - id: jzdh.zhenfu
+    name: 北水街甄府
+    kind: scene
+    layer: city
+    scene: jzdh.zhenfu
+    xy: [62, 42]
+    inside_wall: true
+    beats_from_entry: 1
+    notes: 四水帮靠山。
+  - id: jzdh.zongmen
+    name: 宵明宗驻地
+    kind: scene
+    layer: city
+    scene: jzdh.zongmen
+    xy: [72, 38]
+    inside_wall: true
+    beats_from_entry: 1
+    notes: 镇守中枢。鸣金示警，击鼓关城门。
+  - id: jzdh.luanzanggang
+    name: 乱葬岗
+    kind: scene
+    layer: city
+    scene: jzdh.luanzanggang
+    xy: [48, 12]
+    inside_wall: false
+    beats_from_entry: 2
+    notes: 城外。望楼只见前山。夜里出城是送死。
+  - id: fengshuiqiao
+    name: 丰水桥
+    kind: landmark
+    layer: city
+    xy: [50, 78]
+    inside_wall: true
+    notes: 夜集，三更方散。非 index.scenes，走路闲聊即可，不另开 travel check。
+  - id: baopingxiang
+    name: 宝平巷
+    kind: landmark
+    layer: city
+    xy: [22, 62]
+    inside_wall: true
+    notes: 奇股人曲三郎。非 play 场景。
+  - id: watchtower
+    name: 望楼
+    kind: landmark
+    layer: city
+    xy: [55, 30]
+    notes: 城内五座。光天化日不得以武乱禁。盲区：城外驿站。
+
+edges: # 与 pack.yaml places 一致；landmark 无边
+  - { from: jzdh.dangkang, to: jzdh.dangjia, beats: 1 }
+  - { from: jzdh.dangkang, to: jzdh.zhenfu, beats: 1 }
+  - { from: jzdh.dangkang, to: jzdh.zongmen, beats: 1 }
+  - { from: jzdh.dangkang, to: jzdh.luanzanggang, beats: 2 }
