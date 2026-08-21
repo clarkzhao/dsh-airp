@@ -148,6 +148,9 @@ export class HostRuntime {
       sameNight
         ? '切入夜与丁松言借尸还魂同一夜。对外可称离魂失忆。丁松言仍在定江府，两条线可能相交，不要抢他的底牌。'
         : '',
+      this.state.facts.pc_birthplace
+        ? `籍贯 ${this.state.facts.pc_birthplace} ≠ 当前场景。不要把场景地名写成出生地。`
+        : '',
     ].filter(Boolean).join('\n')
   }
 

@@ -229,6 +229,8 @@ test('custom traveler shares Ding arrival night and does not steal his card', as
   assert.ok(state.characters['ding-songyan'])
   assert.ok(!state.present.includes('ding-songyan'))
   assert.match(rt.bootBrief(), /同一夜|借尸还魂/)
+  assert.match(rt.bootBrief(), /籍贯 岳江府 ≠ 当前场景/)
+  assert.match(rt.bootBrief(), /你现在站在|当康庙|宵明/)
   const moth = rt.dispatch({
     kind: 'ic',
     tags: ['contest'],
