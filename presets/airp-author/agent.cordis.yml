@@ -23,6 +23,8 @@
 
 - id: tool-fs-search
   name: '@deepseek-ai/dsh-tool-fs-search'
+  config:
+    sampleOverCapGlobResults: false
 
 # Skill registry is host-layered per preset; these rows publish nothing.
 - id: skill-filesystem
