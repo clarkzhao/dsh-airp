@@ -89,7 +89,7 @@ export class HostRuntime {
     const keys = this.canon.index.lore ?? []
     const mapKey = keys.find((id) => id.endsWith('-map') || id === 'map' || id.includes('-map'))
     if (!mapKey) return ''
-    return `地图：lore_get ${mapKey}。开场/换场用 image_gen（inline_image 默认 true）；不要把本地 jpg 路径写进对白 markdown。`
+    return `地图：lore_get ${mapKey}。开场/换场用 image_gen，再把 https 图写进对白 ![说明](https://…)；不要贴本地路径。`
   }
 
   private loreBody(key: string | undefined): string {
@@ -123,6 +123,7 @@ export class HostRuntime {
       '',
       '你已经在引擎里。禁止再问引擎在哪、不要扫工作区、不要用 ask_user_question 找路径。',
       '开场直接叙述当前场景。用 lore_get / state_read / check_propose / state_propose_fact。',
+      '出图：image_gen 后把 https 图嵌进叙述；不要贴本地路径，也不要等工具卡出图。',
     ].join('\n')
   }
 

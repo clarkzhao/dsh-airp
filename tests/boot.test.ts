@@ -48,6 +48,7 @@ test('selecting bundled tingen opens a runtime with commission brief', async () 
   assert.match(brief, /lotm-tingen/)
   assert.match(brief, /commission|委托|黑荆棘/)
   assert.match(brief, /禁止再问引擎在哪/)
+  assert.match(brief, /出图：image_gen 后把 https 图嵌进叙述/)
   assert.match(brief, /鉴定词/)
 })
 
@@ -63,6 +64,7 @@ test('dingjiang boot brief uses temple scene lore and pack tags', async () => {
   assert.match(brief, /powang|破妄/)
   assert.match(brief, /commission: pending|commission=pending/)
   assert.match(brief, /lore_get jzdh-map/)
+  assert.match(brief, /!\[说明\]\(https:\/\/…\)/)
   assert.doesNotMatch(brief, /黑荆棘安保公司/)
 })
 
