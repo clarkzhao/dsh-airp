@@ -62,6 +62,7 @@ test('dingjiang boot brief uses temple scene lore and pack tags', async () => {
   assert.match(brief, /当康庙|说书/)
   assert.match(brief, /powang|破妄/)
   assert.match(brief, /commission: pending|commission=pending/)
+  assert.match(brief, /lore_get jzdh-map/)
   assert.doesNotMatch(brief, /黑荆棘安保公司/)
 })
 

@@ -80,8 +80,16 @@ export class HostRuntime {
       place ? `场景：\n${place}` : '',
       job ? `委托：\n${job}` : '',
       this.arrivalNote(),
+      this.mapLine(),
       'Numeric fields only change via check_propose or /gm. Walking is not a check.',
     ].filter((line) => line !== undefined && line !== '').join('\n')
+  }
+
+  private mapLine(): string {
+    const keys = this.canon.index.lore ?? []
+    const mapKey = keys.find((id) => id.endsWith('-map') || id === 'map' || id.includes('-map'))
+    if (!mapKey) return ''
+    return `地图：lore_get ${mapKey}。开场/换场用 image_gen（inline_image 默认 true）；不要把本地 jpg 路径写进对白 markdown。`
   }
 
   private loreBody(key: string | undefined): string {

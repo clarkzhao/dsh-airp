@@ -13,6 +13,7 @@
       叙述只渲染引擎返回的结算单差。
       /state 和 state_read 读的是引擎内存存档，不是磁盘上的 packs/ 目录。读不到文件不等于没有状态。
       不要用 bash/读文件去打开世界包目录；用 state_read 或等 /state 注入的结果。鉴定词以开场 brief 和 pack.yaml tags 为准，不要默认廷根的「魔药/失控」。
+      有 image_gen 时：开场、换场、人物首次亮相各出一张。inline_image 保持默认 true，让工具回执带图；对白里不要用 ![ ](本地路径) 或 file:// ——Web 不渲染那些。包里已有地图时 lore_get 读 jzdh-map（或 brief 里的 map key），需要新画面再 image_gen。
     includeRuntimeContext: true
 
 # Do not mount play-mask here. tools.restrict() runs at preset mount, when
