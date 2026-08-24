@@ -172,6 +172,30 @@ test('pick-custom without a path asks again and does not fall back to tingen', (
   )
 })
 
+test('scene picker shows lore titles not dotted ids', () => {
+  const canon = {
+    meta: { id: 'atlas', title: '图册', rng: 'none' as const, entry_scene: 'yanjing.wujinsi' },
+    index: { checks: [], characters: [], lore: ['yanjing-wujinsi'], scenes: ['yanjing.wujinsi', 'gan.tiannv'] },
+    checks: {},
+    characters: {},
+    lore: {
+      'yanjing-wujinsi': { key: 'yanjing-wujinsi', body: '# 炎京·武禁司\n\n广场。' },
+      'gan-tiannv': { key: 'gan-tiannv', body: '# 甘·天女派山门\n\n山门。' },
+    },
+    guarded: [],
+  }
+  const labels = seatingQuestion(canon).questions[1]!.options!.map((o) => o.label)
+  assert.deepEqual(labels, ['炎京·武禁司', '甘·天女派山门'])
+  assert.ok(!labels.some((label) => label.includes('.')))
+  const seat = resolveSeating({
+    answers: [
+      { id: 'boot_mode', selected: [PICK_CUSTOM_TRAVELER] },
+      { id: 'boot_scene', selected: ['甘·天女派山门'] },
+    ],
+  }, canon)
+  assert.equal(seat.scene, 'gan.tiannv')
+})
+
 test('easy dingjiang seating stays Ding at the temple', async () => {
   const loaded = await loadPack(join(packsDir, 'jzdh-dingjiang'))
   assert.equal(loaded.ok, true)
