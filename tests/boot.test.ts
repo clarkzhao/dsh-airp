@@ -146,10 +146,11 @@ test('boot card lists dingjiang demo and author can pick new pack', () => {
   const labels = q.questions[0]!.options!.map((o) => o.label)
   assert.ok(labels.includes(BUNDLED_TINGEN))
   assert.ok(labels.includes(BUNDLED_JZDH))
-  assert.ok(labels.some((label) => label.includes('my-pack')))
-  const mine = q.questions[0]!.options!.find((o) => o.label.includes('my-pack'))
+  assert.ok(labels.includes('我的包'))
+  assert.ok(!labels.some((label) => /lotm-tingen|jzdh-dingjiang|my-pack/.test(label)))
+  const mine = q.questions[0]!.options!.find((o) => o.label === '我的包')
   assert.match(mine?.description ?? '', /community/)
-  assert.match(mine?.description ?? '', /~\/.dsh\/airp-packs/)
+  assert.match(mine?.description ?? '', /你的世界包目录/)
   assert.deepEqual(resolveBootChoice({ answers: [{ id: 'boot_pack', selected: [BUNDLED_JZDH] }] }), {
     kind: 'bundled',
     packId: 'jzdh-dingjiang',
@@ -178,6 +179,10 @@ test('easy dingjiang seating stays Ding at the temple', async () => {
   const modes = q.questions[0]!.options!.map((o) => o.label)
   assert.ok(modes.includes(PICK_EASY_DING))
   assert.ok(modes.includes(PICK_CUSTOM_TRAVELER))
+  const scenes = q.questions[1]!.options!.map((o) => o.label)
+  assert.ok(scenes.includes('当康庙'))
+  assert.ok(scenes.includes('宵明宗驻地'))
+  assert.ok(!scenes.some((label) => label.includes('.')))
   const seat = resolveSeating({
     answers: [{ id: 'boot_mode', selected: [PICK_EASY_DING] }],
   }, loaded.canon!)
@@ -199,7 +204,7 @@ test('custom traveler shares Ding arrival night and does not steal his card', as
   const seat = resolveSeating({
     answers: [
       { id: 'boot_mode', selected: [PICK_CUSTOM_TRAVELER] },
-      { id: 'boot_scene', selected: ['jzdh.zongmen'] },
+      { id: 'boot_scene', selected: ['宵明宗驻地'] },
     ],
   }, loaded.canon!, {
     answers: [
