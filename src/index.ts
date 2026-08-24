@@ -62,6 +62,11 @@ export function apply(ctx: Context, config: Config): void {
     return undefined
   }
 
+  const liveAgent = (id: string) => {
+    const agents = ctx.get('agents')
+    return agents?.get(id as never)
+  }
+
   const maybeBoot = (agent: { id: string; inject: (msg: never) => void; session?: { events?: ReadonlyArray<{ type?: string }> } }, source?: string) => {
     if (runtimes.has(String(agent.id))) return
     if (!shouldBootStory({
@@ -70,10 +75,20 @@ export function apply(ctx: Context, config: Config): void {
       blank: sessionIsBlank(agent.session),
       alreadyBooted: runtimes.has(String(agent.id)),
     })) return
-    void bootSession(agent).catch((error) => {
+    const current = liveAgent(String(agent.id)) ?? agent
+    void bootSession(current).catch((error) => {
       if (isAskCancelled(error)) {
         blocked.add(String(agent.id))
         return
+      }
+      const message = error instanceof Error ? error.message : String(error)
+      try {
+        agent.inject({
+          content: [{ type: 'text', text: `AIRP 开局卡没能弹出：${message}` }],
+          source: { kind: 'plugin', plugin: 'dsh-airp' },
+        } as never)
+      } catch {
+        /* inject may be unavailable before the session is live */
       }
     })
   }
@@ -92,16 +107,17 @@ export function apply(ctx: Context, config: Config): void {
   const askChoice = async (agent: unknown, lastError?: string, author = false) => {
     const questions = ctx.get('userQuestions')
     if (!questions) return { kind: 'bundled' as const, packId: config.defaultPack ?? 'lotm-tingen' }
+    const live = liveAgent(String((agent as { id?: string }).id ?? '')) ?? agent
     const catalog = await catalogOf()
     let choice = lastError
-      ? resolvePathAnswer(await questions.ask({ questions: pathQuestion(lastError).questions, agent: agent as never }))
+      ? resolvePathAnswer(await questions.ask({ questions: pathQuestion(lastError).questions, agent: live as never }))
       : resolveBootChoice(await questions.ask({
         questions: (author ? authorQuestion(catalog.packs) : bootQuestionFromRefs(catalog.packs)).questions,
-        agent: agent as never,
+        agent: live as never,
       }), catalog.packs)
     let error = lastError
     while (choice.kind === 'need-path') {
-      const again = await questions.ask({ questions: pathQuestion(error).questions, agent: agent as never })
+      const again = await questions.ask({ questions: pathQuestion(error).questions, agent: live as never })
       choice = resolvePathAnswer(again)
       if (choice.kind === 'need-path') error = '没有读到路径。请粘贴含 pack.yaml 的目录。'
     }
@@ -114,11 +130,12 @@ export function apply(ctx: Context, config: Config): void {
     const loaded = await loadPack(dir)
     if (!loaded.ok || !loaded.canon) return undefined
     if (playableCharacters(loaded.canon).length + playableScenes(loaded.canon).length === 0) return undefined
-    const answer = await questions.ask({ questions: seatingQuestion(loaded.canon).questions, agent: agent as never })
+    const live = liveAgent(String((agent as { id?: string }).id ?? '')) ?? agent
+    const answer = await questions.ask({ questions: seatingQuestion(loaded.canon).questions, agent: live as never })
     const draft = resolveSeating(answer, loaded.canon)
     if (!seatingNeedsTraveler(draft)) return draft
-    const bio1 = await questions.ask({ questions: travelerQuestion(1).questions, agent: agent as never })
-    const bio2 = await questions.ask({ questions: travelerQuestion(2).questions, agent: agent as never })
+    const bio1 = await questions.ask({ questions: travelerQuestion(1).questions, agent: live as never })
+    const bio2 = await questions.ask({ questions: travelerQuestion(2).questions, agent: live as never })
     return resolveSeating(answer, loaded.canon, mergeBootAnswers(bio1, bio2))
   }
 
