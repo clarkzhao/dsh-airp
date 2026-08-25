@@ -135,4 +135,4 @@ Canon.pack.yaml
 - ST 资产语义迁移
 - 日历世界钟（不是 `clock.beat`）；收据对玩家隐瞒掷骰数字；`UNCAUSED_CLAIM`
 
-明确不做：把 ST 请回宿主、SaaS 市场、生图引擎、在故事会话里热改 Cordis、把官方 demo 写成连载主线。
+明确不做：把 ST 请回宿主、SaaS 市场、**自带生图引擎**（Host 只提供 `airpStage` 呈现 seam，出图插件可选接入）、在故事会话里热改 Cordis、把官方 demo 写成连载主线。

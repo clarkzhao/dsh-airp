@@ -14,6 +14,7 @@ DeepSeek Harness 上的 AIRP 引擎：深 module `WorldKernel` + 浅 Host adapte
 - `Pack.load` / `validate` / `catalog`：YAML 索引 + Markdown 细节；bundled + `~/.dsh/airp-packs` + 自定义路径
 - 官方示例（不是产品主线）：`packs/lotm-tingen`、`packs/jzdh-dingjiang`。自己的包写到 `~/.dsh/airp-packs/`
 - 工具名必须匹配 `^[a-zA-Z0-9_-]+$`：`lore_get` / `state_read` / `check_propose` / `state_propose_fact` / `check_match` / `pack_validate` / `pack_scaffold` / `pack_open_play` / `pack_interview`
+- 可选舞台 `airpStage`：`/airp-media` 把本地图变成同源绝对 http(s) URL，叙述者嵌进对白。不出图引擎，不绑 grok-image。
 
 ## 世界包生态
 

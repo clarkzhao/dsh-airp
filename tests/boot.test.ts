@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { test } from 'node:test'
-import { BUNDLED_JZDH, BUNDLED_TINGEN, PICK_CUSTOM, PICK_CUSTOM_TRAVELER, PICK_EASY_DING, PICK_NEW_PACK, bootQuestion, bootQuestionFromRefs, isAskCancelled, looksLikePackPath, openRuntime, pathQuestion, presetFromSession, resolveBootChoice, resolvePathAnswer, resolveSeating, seatingQuestion, sessionIsBlank, shouldBootStory, travelerQuestion } from '../src/host/boot.ts'
+import { BUNDLED_JZDH, BUNDLED_TINGEN, PICK_CUSTOM, PICK_CUSTOM_TRAVELER, PICK_EASY_DING, PICK_NEW_PACK, bootQuestion, bootQuestionFromRefs, isAskCancelled, looksLikePackPath, openRuntime, pathQuestion, presetFromSession, resolveBootChoice, resolvePathAnswer, resolveSeating, seatingQuestion, sessionIsBlank, shouldBootStory, shouldReseatForPlay, travelerQuestion } from '../src/host/boot.ts'
 import { loadPack } from '../src/pack/pack.ts'
 
 const packsDir = join(dirname(fileURLToPath(import.meta.url)), '..', 'packs')
@@ -32,6 +32,9 @@ test('cancelling the pack picker is not a fatal error', () => {
 
 test('switching to airp-play while the session is still blank should boot', () => {
   assert.equal(shouldBootStory({ presetId: 'airp-play', source: 'startup', blank: true }), true)
+  assert.equal(shouldReseatForPlay({ presetId: 'airp-play', role: 'author', blank: true }), true)
+  assert.equal(shouldReseatForPlay({ presetId: 'airp-play', role: 'play', blank: true }), false)
+  assert.equal(shouldReseatForPlay({ presetId: 'airp-play', role: 'author', blank: false }), false)
   assert.equal(sessionIsBlank({ events: [{ type: 'agent-preset/selected' }] }), true)
   assert.equal(sessionIsBlank({ events: [{ type: 'turn/start' }] }), false)
   assert.equal(presetFromSession({
@@ -48,6 +51,8 @@ test('selecting bundled tingen opens a runtime with commission brief', async () 
   assert.match(brief, /lotm-tingen/)
   assert.match(brief, /commission|委托|黑荆棘/)
   assert.match(brief, /禁止再问引擎在哪/)
+  assert.match(brief, /没有 Web 舞台/)
+  assert.doesNotMatch(brief, /image_gen/)
   assert.match(brief, /鉴定词/)
 })
 
@@ -62,7 +67,23 @@ test('dingjiang boot brief uses temple scene lore and pack tags', async () => {
   assert.match(brief, /当康庙|说书/)
   assert.match(brief, /powang|破妄/)
   assert.match(brief, /commission: pending|commission=pending/)
+  assert.match(brief, /lore_get jzdh-map/)
+  assert.match(brief, /没有 Web 舞台/)
+  assert.doesNotMatch(brief, /image_gen/)
   assert.doesNotMatch(brief, /黑荆棘安保公司/)
+})
+
+test('boot brief with a stage hint tells the narrator the media URL', async () => {
+  const rt = await openRuntime({
+    packsDir,
+    sessionId: 'boot-stage',
+    choice: { kind: 'bundled', packId: 'lotm-tingen' },
+    stageHint: '舞台 http://127.0.0.1:3080/airp-media/<文件>。对白写 ![说明](http://127.0.0.1:3080/airp-media/文件名.jpg)。',
+  })
+  const brief = rt.bootBrief()
+  assert.match(brief, /\/airp-media\//)
+  assert.match(brief, /!\[说明\]\(http:\/\/127\.0\.0\.1:3080\/airp-media/)
+  assert.doesNotMatch(brief, /image_gen/)
 })
 
 test('live indexText follows scene after a travel check', async () => {
@@ -145,10 +166,11 @@ test('boot card lists dingjiang demo and author can pick new pack', () => {
   const labels = q.questions[0]!.options!.map((o) => o.label)
   assert.ok(labels.includes(BUNDLED_TINGEN))
   assert.ok(labels.includes(BUNDLED_JZDH))
-  assert.ok(labels.some((label) => label.includes('my-pack')))
-  const mine = q.questions[0]!.options!.find((o) => o.label.includes('my-pack'))
+  assert.ok(labels.includes('我的包'))
+  assert.ok(!labels.some((label) => /lotm-tingen|jzdh-dingjiang|my-pack/.test(label)))
+  const mine = q.questions[0]!.options!.find((o) => o.label === '我的包')
   assert.match(mine?.description ?? '', /community/)
-  assert.match(mine?.description ?? '', /~\/.dsh\/airp-packs/)
+  assert.match(mine?.description ?? '', /你的世界包目录/)
   assert.deepEqual(resolveBootChoice({ answers: [{ id: 'boot_pack', selected: [BUNDLED_JZDH] }] }), {
     kind: 'bundled',
     packId: 'jzdh-dingjiang',
@@ -170,6 +192,30 @@ test('pick-custom without a path asks again and does not fall back to tingen', (
   )
 })
 
+test('scene picker shows lore titles not dotted ids', () => {
+  const canon = {
+    meta: { id: 'atlas', title: '图册', rng: 'none' as const, entry_scene: 'yanjing.wujinsi' },
+    index: { checks: [], characters: [], lore: ['yanjing-wujinsi'], scenes: ['yanjing.wujinsi', 'gan.tiannv'] },
+    checks: {},
+    characters: {},
+    lore: {
+      'yanjing-wujinsi': { key: 'yanjing-wujinsi', body: '# 炎京·武禁司\n\n广场。' },
+      'gan-tiannv': { key: 'gan-tiannv', body: '# 甘·天女派山门\n\n山门。' },
+    },
+    guarded: [],
+  }
+  const labels = seatingQuestion(canon).questions[1]!.options!.map((o) => o.label)
+  assert.deepEqual(labels, ['炎京·武禁司', '甘·天女派山门'])
+  assert.ok(!labels.some((label) => label.includes('.')))
+  const seat = resolveSeating({
+    answers: [
+      { id: 'boot_mode', selected: [PICK_CUSTOM_TRAVELER] },
+      { id: 'boot_scene', selected: ['甘·天女派山门'] },
+    ],
+  }, canon)
+  assert.equal(seat.scene, 'gan.tiannv')
+})
+
 test('easy dingjiang seating stays Ding at the temple', async () => {
   const loaded = await loadPack(join(packsDir, 'jzdh-dingjiang'))
   assert.equal(loaded.ok, true)
@@ -177,6 +223,10 @@ test('easy dingjiang seating stays Ding at the temple', async () => {
   const modes = q.questions[0]!.options!.map((o) => o.label)
   assert.ok(modes.includes(PICK_EASY_DING))
   assert.ok(modes.includes(PICK_CUSTOM_TRAVELER))
+  const scenes = q.questions[1]!.options!.map((o) => o.label)
+  assert.ok(scenes.includes('当康庙'))
+  assert.ok(scenes.includes('宵明宗驻地'))
+  assert.ok(!scenes.some((label) => label.includes('.')))
   const seat = resolveSeating({
     answers: [{ id: 'boot_mode', selected: [PICK_EASY_DING] }],
   }, loaded.canon!)
@@ -198,7 +248,7 @@ test('custom traveler shares Ding arrival night and does not steal his card', as
   const seat = resolveSeating({
     answers: [
       { id: 'boot_mode', selected: [PICK_CUSTOM_TRAVELER] },
-      { id: 'boot_scene', selected: ['jzdh.zongmen'] },
+      { id: 'boot_scene', selected: ['宵明宗驻地'] },
     ],
   }, loaded.canon!, {
     answers: [

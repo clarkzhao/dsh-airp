@@ -34,8 +34,9 @@ export class HostRuntime {
   private log: StoryEvent[]
   private id: string
   private readonly role: PlayRole
+  private readonly stageHint?: string
 
-  constructor(opts: { canon: Canon; sessionId: string; seed: string; role?: PlayRole; seat?: OpeningSeat }) {
+  constructor(opts: { canon: Canon; sessionId: string; seed: string; role?: PlayRole; seat?: OpeningSeat; stageHint?: string }) {
     this.canon = opts.canon
     this.kernel = new WorldKernel(opts.canon)
     this.opening = applySeating(initialState(opts.canon, opts.seed), opts.canon, opts.seat)
@@ -43,6 +44,11 @@ export class HostRuntime {
     this.log = []
     this.id = opts.sessionId
     this.role = opts.role ?? 'play'
+    this.stageHint = opts.stageHint
+  }
+
+  get playRole(): PlayRole {
+    return this.role
   }
 
   get sessionId(): string {
@@ -80,8 +86,16 @@ export class HostRuntime {
       place ? `场景：\n${place}` : '',
       job ? `委托：\n${job}` : '',
       this.arrivalNote(),
+      this.mapLine(),
       'Numeric fields only change via check_propose or /gm. Walking is not a check.',
     ].filter((line) => line !== undefined && line !== '').join('\n')
+  }
+
+  private mapLine(): string {
+    const keys = this.canon.index.lore ?? []
+    const mapKey = keys.find((id) => id.endsWith('-map') || id === 'map' || id.includes('-map'))
+    if (!mapKey) return ''
+    return `地图：lore_get ${mapKey}。`
   }
 
   private loreBody(key: string | undefined): string {
@@ -115,6 +129,7 @@ export class HostRuntime {
       '',
       '你已经在引擎里。禁止再问引擎在哪、不要扫工作区、不要用 ask_user_question 找路径。',
       '开场直接叙述当前场景。用 lore_get / state_read / check_propose / state_propose_fact。',
+      this.stageHint ?? '没有 Web 舞台时不要贴图片路径。',
     ].join('\n')
   }
 

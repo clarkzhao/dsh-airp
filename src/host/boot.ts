@@ -1,12 +1,12 @@
 import type { OpeningSeat } from '../kernel/types.ts'
-import { loadPack, playableScenes } from '../pack/pack.ts'
+import { loadPack, playableScenes, resolveLoreKey, loreKeyCandidates } from '../pack/pack.ts'
 import { expandUserPath, type PackRef } from '../pack/catalog.ts'
 import { HostRuntime } from './runtime.ts'
 
 export const PLAY_PRESET_ID = 'airp-play'
 export const AUTHOR_PRESET_ID = 'airp-author'
-export const BUNDLED_TINGEN = '廷根切片 lotm-tingen（推荐）'
-export const BUNDLED_JZDH = '定江切片 jzdh-dingjiang'
+export const BUNDLED_TINGEN = '廷根切片（推荐）'
+export const BUNDLED_JZDH = '定江切片'
 export const PICK_CUSTOM = '选择我的世界包目录…'
 export const PICK_NEW_PACK = '从零写一个新世界包…'
 export const PICK_DEFAULT_SEAT = '用包默认开场'
@@ -63,6 +63,15 @@ export function shouldBootStory(opts: {
   return isPlayPreset(opts.presetId) || isAuthorPreset(opts.presetId)
 }
 
+/** Author can load a pack with no seating card. A still-blank switch to play must ask seating. */
+export function shouldReseatForPlay(opts: {
+  presetId?: string
+  role?: string
+  blank?: boolean
+}): boolean {
+  return isPlayPreset(opts.presetId) && opts.role === 'author' && opts.blank !== false
+}
+
 export function isAskCancelled(error: unknown): boolean {
   if (!error || typeof error !== 'object') return false
   const code = 'code' in error ? String((error as { code?: unknown }).code ?? '') : ''
@@ -98,21 +107,21 @@ export function bootQuestion(packIds: string[]): BootAsk {
 export function bootQuestionFromRefs(packs: PackRef[]): BootAsk {
   const seen = new Set<string>()
   const options: Array<{ label: string; description?: string }> = [
-    { label: BUNDLED_TINGEN, description: optionBlurb(packs.find((pack) => pack.id === 'lotm-tingen'), '立刻进入黑荆棘安保公司，读委托开玩。官方 demo。') },
+    { label: BUNDLED_TINGEN, description: optionBlurb(packs.find((pack) => pack.id === 'lotm-tingen'), '立刻进入黑荆棘安保公司，读委托开玩。官方示例。') },
   ]
   seen.add('lotm-tingen')
   if (packs.some((pack) => pack.id === 'jzdh-dingjiang')) {
-    options.push({ label: BUNDLED_JZDH, description: optionBlurb(packs.find((pack) => pack.id === 'jzdh-dingjiang'), '大荒时代切片。开局自选人物与地点。官方 demo。') })
+    options.push({ label: BUNDLED_JZDH, description: optionBlurb(packs.find((pack) => pack.id === 'jzdh-dingjiang'), '大荒时代切片。开局自选人物与地点。官方示例。') })
     seen.add('jzdh-dingjiang')
   }
   for (const pack of packs) {
     if (seen.has(pack.id)) continue
     seen.add(pack.id)
-    const where = pack.origin === 'user' ? '~/.dsh/airp-packs' : pack.origin === 'custom' ? pack.dir : 'packs/'
+    const where = pack.origin === 'user' ? '你的世界包目录' : pack.origin === 'custom' ? '自选目录' : '官方示例'
     const license = pack.license ? ` · ${pack.license}` : ''
     options.push({
-      label: `${pack.title} (${pack.id})`,
-      description: `${pack.description ?? pack.id} · ${where}${license}`,
+      label: pack.title || '未命名世界',
+      description: `${pack.description ?? pack.title} · ${where}${license}`,
     })
   }
   options.push({ label: PICK_CUSTOM, description: '下一屏粘贴含 pack.yaml 的目录。卡片底部也可直接输入路径。' })
@@ -120,7 +129,7 @@ export function bootQuestionFromRefs(packs: PackRef[]): BootAsk {
     questions: [{
       id: 'boot_pack',
       header: '加载世界',
-      question: '先选要进的世界包。官方 demo 在仓内 packs/；你自己的包放 ~/.dsh/airp-packs/<id>/ 或任意含 pack.yaml 的目录。',
+      question: '先选要进的世界。官方示例已列在上面；自己的世界放在用户世界包目录，或在卡片底部粘贴目录路径。',
       options,
     }],
   }
@@ -132,8 +141,8 @@ export function pathQuestion(error?: string): BootAsk {
       id: 'boot_path',
       header: '世界包路径',
       question: error
-        ? `没能加载该目录：${error}\n请再贴一次含 pack.yaml 的目录路径。`
-        : '请输入或粘贴含 pack.yaml 的目录路径。不要选廷根，除非你改主意了。',
+        ? `没能加载该目录：${error}\n请再贴一次世界包所在目录（里面要有世界清单文件）。`
+        : '请输入或粘贴世界包所在目录。不要选廷根，除非你改主意了。',
     }],
   }
 }
@@ -147,7 +156,7 @@ export function resolveBootChoice(answer: BootAnswer, packs: PackRef[] = []): { 
   if (label === PICK_NEW_PACK) return { kind: 'new-pack' }
   if (label === BUNDLED_TINGEN) return { kind: 'bundled', packId: 'lotm-tingen' }
   if (label === BUNDLED_JZDH) return { kind: 'bundled', packId: 'jzdh-dingjiang' }
-  const byTitle = packs.find((pack) => label === `${pack.title} (${pack.id})` || label === pack.id)
+  const byTitle = packs.find((pack) => label === pack.title || label === `${pack.title} (${pack.id})` || label === pack.id)
   if (byTitle) return { kind: 'bundled', packId: byTitle.id }
   return { kind: 'bundled', packId: label }
 }
@@ -173,10 +182,13 @@ export function seatingQuestion(canon: import('../kernel/types.ts').Canon): Boot
         { label: PICK_CUSTOM_TRAVELER, description: '自拟身份，同年同夜切入。丁松言仍在城中，两条线可能相交。' },
       ]
     : [
-        { label: PICK_DEFAULT_SEAT, description: '沿用 pack.yaml 的 opening.present 与 entry_scene。' },
+        { label: PICK_DEFAULT_SEAT, description: '沿用这个世界自己的默认开场人物和地点。' },
         { label: PICK_CUSTOM_TRAVELER, description: '自拟路人，不占用原著底牌。' },
       ]
-  const sceneOptions = scenes.map((id) => ({ label: id, description: `进入 ${id}` }))
+  const sceneOptions = scenes.map((id) => {
+    const title = sceneTitle(canon, id)
+    return { label: title, description: `从「${title}」开场` }
+  })
   return {
     questions: [
       {
@@ -193,7 +205,7 @@ export function seatingQuestion(canon: import('../kernel/types.ts').Canon): Boot
         question: dingjiang
           ? '自拟穿越者再选落点。轻松丁松言线默认当康庙。'
           : '自拟人物再选地点。默认开场可忽略。',
-        options: sceneOptions.length ? sceneOptions : [{ label: PICK_DEFAULT_SEAT, description: `默认 ${canon.meta.entry_scene ?? 'start'}` }],
+        options: sceneOptions.length ? sceneOptions : [{ label: PICK_DEFAULT_SEAT, description: `默认${sceneTitle(canon, canon.meta.entry_scene ?? '') || '开场地点'}` }],
       },
     ],
   }
@@ -215,6 +227,23 @@ export function mergeBootAnswers(...cards: BootAnswer[]): BootAnswer {
   return { answers: cards.flatMap((card) => card.answers) }
 }
 
+function sceneTitle(canon: import('../kernel/types.ts').Canon, sceneId: string): string {
+  if (!sceneId) return ''
+  const key = resolveLoreKey(loreKeyCandidates(sceneId), canon.lore)
+  const body = key ? canon.lore[key]?.body ?? '' : ''
+  const heading = body.match(/^#\s+(.+)$/m)
+  const title = heading?.[1]?.trim()
+  return title || sceneId.split('.').pop() || sceneId
+}
+
+function resolveSceneLabel(canon: import('../kernel/types.ts').Canon, label: string): string | undefined {
+  if (!label || label === PICK_DEFAULT_SEAT) return undefined
+  const scenes = playableScenes(canon)
+  if (scenes.includes(label)) return label
+  const hit = scenes.find((id) => sceneTitle(canon, id) === label)
+  return hit
+}
+
 function field(answer: BootAnswer, id: string): string {
   const hit = answer.answers.find((a) => a.id === id)
   return (hit?.custom ?? hit?.selected?.[0] ?? '').trim()
@@ -231,9 +260,8 @@ export function resolveSeating(answer: BootAnswer, canon: import('../kernel/type
       : { mode: 'easy' }
   }
   const seat: OpeningSeat = { mode: 'custom' }
-  if (sceneLabel && sceneLabel !== PICK_DEFAULT_SEAT && playableScenes(canon).includes(sceneLabel)) {
-    seat.scene = sceneLabel
-  }
+  const sceneId = resolveSceneLabel(canon, sceneLabel)
+  if (sceneId) seat.scene = sceneId
   const name = traveler ? field(traveler, 'boot_name') : ''
   seat.customName = name || '路人'
   if (traveler) {
@@ -258,6 +286,7 @@ export async function openRuntime(opts: {
   role?: 'play' | 'author'
   userDir?: string
   seat?: OpeningSeat
+  stageHint?: string
 }): Promise<HostRuntime> {
   const { loadCatalog, resolvePackDir } = await import('../pack/catalog.ts')
   const catalog = await loadCatalog({ bundledDir: opts.packsDir, userDir: opts.userDir })
@@ -275,5 +304,6 @@ export async function openRuntime(opts: {
     seed: opts.seed ?? `${packId}:${opts.sessionId}`,
     role: opts.role,
     seat: opts.seat,
+    stageHint: opts.stageHint,
   })
 }

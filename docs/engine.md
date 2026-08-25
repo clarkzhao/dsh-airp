@@ -92,6 +92,7 @@ flowchart LR
 | WorldKernel | 深 module | 一簇 `check-engine.ts` / `fold.ts` 平铺导出 |
 | Pack | `load(dir)` / `validate(pack)` | 第二种装载源出现前不为 fs 做 port |
 | DshHostAdapter | 把 Cordis ctx 译成 `turn` / `match` | 领域逻辑 |
+| airpStage | Host 可选呈现：`/airp-media` + `publish`/`mountRoot` | 生图引擎；Kernel port |
 | airp-play / airp-author | 可见性掩码 + persona | module |
 | 官方 `cordis_*` | 开发插件 | 故事会话 |
 
@@ -273,7 +274,16 @@ v0 默认 ξ：存档种子派生 `u ~ Uniform(0,1)`，`u < p` 成功。测试�
 
 ## 7. 表现
 
-v0：模型读 `receipt` 写散文。没有 `present` module。参考图可当附件给模型看，那不是表现引擎。生图 / TTS 出现第二种实现时再提 seam。
+Kernel 没有图、没有 TTS。叙述者读 `receipt` 写散文。Host 另有可选舞台 `airpStage`（`src/host/stage.ts`）：
+
+- 不新开 play 工具。出图工具（`image_gen` 或别的）是别的插件。
+- `ctx.airpStage.publish({ filePath })` 把文件拷进舞台目录，返回同源绝对 http(s) URL。
+- `mountRoot(dir)` 把已有目录挂到 `/airp-media`（适配器自己的落盘目录）。
+- Web Markdown 只渲染绝对 `http:`/`https:`。相对 `/airp-media/…`、`file://`、`data:` 都会被丢掉。
+- 叙述者把 `markdownUrl` 嵌进对白该出现的位置，不要指望工具卡出图。
+- 没有 `webServer` 时 `markdownUrl` 为 `undefined`，brief 写「没有 Web 舞台」，不要贴路径。
+
+第二种生图实现接同一个 seam，不要再给某一家出图插件开第二条媒体路由。
 
 ---
 
@@ -363,7 +373,7 @@ Adapter 测试只覆盖：工具名译成 intent、play 掩码看不见 validate
 
 | 阶段 | 做 | 不做 |
 |---|---|---|
-| 0.1.0 | Kernel + Host + 两份官方示例可玩一晚；`present` 已 guard | Worldsmith、市场、生图、全书、`canon.edit`、日历钟、`UNCAUSED_CLAIM` |
+| 0.1.0 | Kernel + Host + 两份官方示例可玩一晚；`present` 已 guard；Host `airpStage` 可选 | Worldsmith、市场、生图引擎、全书、`canon.edit`、日历钟、`UNCAUSED_CLAIM` |
 | 之后 | Worldsmith、provisional 晋升、因果抽查阻断、收据去骰 | SaaS |
 | 更后 | 语义迁移 ST 资产、可选日历钟 | 把 ST 请回宿主 |
 
