@@ -51,7 +51,8 @@ test('selecting bundled tingen opens a runtime with commission brief', async () 
   assert.match(brief, /lotm-tingen/)
   assert.match(brief, /commission|委托|黑荆棘/)
   assert.match(brief, /禁止再问引擎在哪/)
-  assert.match(brief, /出图：image_gen 后把 https 图嵌进叙述/)
+  assert.match(brief, /没有 Web 舞台/)
+  assert.doesNotMatch(brief, /image_gen/)
   assert.match(brief, /鉴定词/)
 })
 
@@ -67,8 +68,22 @@ test('dingjiang boot brief uses temple scene lore and pack tags', async () => {
   assert.match(brief, /powang|破妄/)
   assert.match(brief, /commission: pending|commission=pending/)
   assert.match(brief, /lore_get jzdh-map/)
-  assert.match(brief, /!\[说明\]\(https:\/\/…\)/)
+  assert.match(brief, /没有 Web 舞台/)
+  assert.doesNotMatch(brief, /image_gen/)
   assert.doesNotMatch(brief, /黑荆棘安保公司/)
+})
+
+test('boot brief with a stage hint tells the narrator the media URL', async () => {
+  const rt = await openRuntime({
+    packsDir,
+    sessionId: 'boot-stage',
+    choice: { kind: 'bundled', packId: 'lotm-tingen' },
+    stageHint: '舞台 http://127.0.0.1:3080/airp-media/<文件>。对白写 ![说明](http://127.0.0.1:3080/airp-media/文件名.jpg)。',
+  })
+  const brief = rt.bootBrief()
+  assert.match(brief, /\/airp-media\//)
+  assert.match(brief, /!\[说明\]\(http:\/\/127\.0\.0\.1:3080\/airp-media/)
+  assert.doesNotMatch(brief, /image_gen/)
 })
 
 test('live indexText follows scene after a travel check', async () => {

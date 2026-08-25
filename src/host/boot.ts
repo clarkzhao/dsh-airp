@@ -286,6 +286,7 @@ export async function openRuntime(opts: {
   role?: 'play' | 'author'
   userDir?: string
   seat?: OpeningSeat
+  stageHint?: string
 }): Promise<HostRuntime> {
   const { loadCatalog, resolvePackDir } = await import('../pack/catalog.ts')
   const catalog = await loadCatalog({ bundledDir: opts.packsDir, userDir: opts.userDir })
@@ -303,5 +304,6 @@ export async function openRuntime(opts: {
     seed: opts.seed ?? `${packId}:${opts.sessionId}`,
     role: opts.role,
     seat: opts.seat,
+    stageHint: opts.stageHint,
   })
 }

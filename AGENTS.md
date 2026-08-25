@@ -34,7 +34,7 @@ turn(state, intent, options?) → TurnResult   # { ok, state, receipt, events }
 
 `options` 可注入 `u` / `rng`。错误码见 `KernelErrorCode`。重放在 Host。测试打 `TurnResult` / `PackDiagnostic`。
 
-**Host Adapter**（`src/host/runtime.ts` `boot.ts` `translate.ts`，`src/index.ts`）：工具译成 `Intent`。`StoryEvent[]` 在内存 `log`，不是 DSH JSONL。`/retry` 按该 log replay（`sessions.fork` 只分叉聊天）。brief：每轮 `indexText()`。
+**Host Adapter**（`src/host/runtime.ts` `boot.ts` `translate.ts` `stage.ts`，`src/index.ts`）：工具译成 `Intent`。`StoryEvent[]` 在内存 `log`，不是 DSH JSONL。`/retry` 按该 log replay（`sessions.fork` 只分叉聊天）。brief：每轮 `indexText()`。可选 `airpStage`：`/airp-media` + `publish`/`mountRoot`，出图插件自己挂上来。
 
 **Pack Seam**（`src/pack/pack.ts` `catalog.ts`）：`loadPack` / `validatePack` / `initialState` / `applySeating`。**只有 Kernel 禁止世界名**；Host/Pack 开局可以写定江（`arrival`、座位卡）。
 
@@ -54,7 +54,7 @@ turn(state, intent, options?) → TurnResult   # { ok, state, receipt, events }
 | 你想动的 | 落点 | 不要 |
 |---|---|---|
 | 鉴定、guard、travel need、lore 预算 | `src/kernel/` | ST 扫描器 |
-| 工具名、brief、boot、replay、座位 | `src/host/` `src/index.ts` | 新 play 工具；play 里 bash / `cordis_*` |
+| 工具名、brief、boot、replay、座位、舞台 | `src/host/` `src/index.ts` | 新 play 工具；play 里 bash / `cordis_*`；绑某一家生图 |
 | 装载、校验、scaffold、八问 | `src/pack/` | 创造流程写进 Kernel |
 | 官方示例坏了 | `packs/lotm-tingen` `packs/jzdh-dingjiang` | 借机加全书；commit `audit/` |
 | 自己的世界 | `~/.dsh/airp-packs/` | PR 进 `packs/` |

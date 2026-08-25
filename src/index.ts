@@ -1,10 +1,12 @@
-import { dirname, resolve } from 'node:path'
+import { homedir } from 'node:os'
+import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import type { Context } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
 import { defineTool } from '@deepseek-ai/dsh-tools'
 import type { Json } from './kernel/types.ts'
 import { denyAuthorTool, receiptText, roleFromPreset } from './host/translate.ts'
+import { AIRP_MEDIA_PREFIX, createAirpStage, loopbackOrigin, type AirpStage } from './host/stage.ts'
 import { HostRuntime } from './host/runtime.ts'
 import { bootQuestionFromRefs, isAskCancelled, isAuthorPreset, isPlayPreset, mergeBootAnswers, openRuntime, pathQuestion, PICK_NEW_PACK, presetFromSession, resolveBootChoice, resolvePathAnswer, resolveSeating, seatingNeedsTraveler, seatingQuestion, sessionIsBlank, shouldBootStory, shouldReseatForPlay, travelerQuestion } from './host/boot.ts'
 import { expandUserPath, loadCatalog, matchTags, resolveIcActors, resolvePackDir, tagsFromMeta, userPacksDir, type PackRef } from './pack/catalog.ts'
@@ -34,10 +36,36 @@ export const Config: z<Config> = z.object({
   loreBudgetChars: z.number().default(4000),
 })
 
+function defaultStageDir(): string {
+  return join(process.env.DSH_HOME ?? join(homedir(), '.dsh'), 'airp-media')
+}
+
 export function apply(ctx: Context, config: Config): void {
   const bundledPacks = resolve(dirname(fileURLToPath(import.meta.url)), '../packs')
   const packsDir = resolve(config.packsDir && config.packsDir !== 'packs' ? config.packsDir : bundledPacks)
   const extraUserDir = config.userPacksDir ? config.userPacksDir : undefined
+  const stage: AirpStage = createAirpStage({
+    stageDir: defaultStageDir(),
+    origin: () => {
+      const webServer = ctx.get('webServer') as { port?: number } | undefined
+      return loopbackOrigin(webServer?.port)
+    },
+    trustedHosts: () => {
+      const runtime = ctx.get('webRuntime') as { trustedHosts?: readonly string[] } | undefined
+      return runtime?.trustedHosts ?? []
+    },
+  })
+  ctx.provide('airpStage', stage)
+  const webServer = ctx.get('webServer') as {
+    register: (route: { kind: 'prefix' | 'exact'; path: string; handler: AirpStage['handle'] }) => () => void
+  } | undefined
+  if (webServer) {
+    ctx.effect(() => webServer.register({
+      kind: 'prefix',
+      path: AIRP_MEDIA_PREFIX,
+      handler: (req, res) => stage.handle(req, res),
+    }), 'dsh-airp: /airp-media stage route')
+  }
   const runtimes = new Map<string, HostRuntime>()
   const lastScaffold = new Map<string, string>()
   const blocked = new Set<string>()
@@ -211,6 +239,7 @@ export function apply(ctx: Context, config: Config): void {
           choice: packChoice,
           role: author ? 'author' : 'play',
           seat,
+          stageHint: stage.hint(),
         })
         if (config.loreBudgetChars) created.canon.meta.loreBudgetChars = config.loreBudgetChars
         blocked.delete(key)
@@ -541,3 +570,13 @@ export { interviewCard, interviewScreens, parseInterview } from './pack/intervie
 export { intentFromTool, intentFromCommand, toolsFor } from './host/translate.ts'
 export { HostRuntime } from './host/runtime.ts'
 export { shouldBootStory, resolveBootChoice, resolvePathAnswer } from './host/boot.ts'
+export {
+  AIRP_MEDIA_PREFIX,
+  createAirpStage,
+  isSafeStageName,
+  loopbackOrigin,
+  mediaTypeForName,
+  stageNameFromUrl,
+  type AirpStage,
+  type AirpStageAsset,
+} from './host/stage.ts'
