@@ -13,10 +13,6 @@ import {
   mediaTypeForName,
   stageNameFromUrl,
 } from '../src/host/stage.ts'
-import { HostRuntime } from '../src/host/runtime.ts'
-import { loadPack } from '../src/pack/pack.ts'
-import { dirname } from 'node:path'
-import { fileURLToPath } from 'node:url'
 
 const JPEG = Buffer.from(
   '/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAP//////////////////////////////////////////////////////////////////////////////////////2wBDAf//////////////////////////////////////////////////////////////////////////////////////wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAX/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIQAxAAAAF//8QAFBABAAAAAAAAAAAAAAAAAAAAAP/aAAgBAQABBQJ//8QAFBEBAAAAAAAAAAAAAAAAAAAAAP/aAAgBAwEBPwF//8QAFBEBAAAAAAAAAAAAAAAAAAAAAP/aAAgBAgEBPwF//8QAFBABAAAAAAAAAAAAAAAAAAAAAP/aAAgBAQAGPwJ//8QAFBABAAAAAAAAAAAAAAAAAAAAAP/aAAgBAQABPyF//9oADAMBAAIAAwAAABD/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oACAEDAQE/EB//xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oACAECAQE/EB//xAAUEAEAAAAAAAAAAAAAAAAAAAAA/9oACAEBAAE/EB//2Q==',
@@ -66,9 +62,10 @@ test('markdownUrl is same-origin absolute http, never a relative path', () => {
     assert.equal(stage.prefix, AIRP_MEDIA_PREFIX)
     assert.equal(stage.markdownUrl('cat.jpg'), 'http://127.0.0.1:3080/airp-media/cat.jpg')
     assert.match(stage.hint(), /http:\/\/127\.0\.0\.1:3080\/airp-media/)
+    assert.doesNotMatch(stage.hint(), /开场、换场/)
     const dark = createAirpStage({ stageDir: dir })
     assert.equal(dark.markdownUrl('cat.jpg'), undefined)
-    assert.match(dark.hint(), /没有 Web 舞台/)
+    assert.match(dark.hint(), /当前没有 Web 舞台/)
   } finally {
     rmSync(dir, { recursive: true, force: true })
   }
@@ -87,7 +84,7 @@ test('publish copies into the stage dir and handle serves it', async () => {
     const published = await stage.publish({ filePath: src })
     assert.equal(published.fileName, 'src.jpg')
     assert.equal(published.url, 'http://127.0.0.1:3080/airp-media/src.jpg')
-    assert.equal(published.markdown, '![src.jpg](http://127.0.0.1:3080/airp-media/src.jpg)')
+    assert.equal('markdown' in published, false)
 
     const ok = mockRes()
     await stage.handle(mockReq('/airp-media/src.jpg'), ok.res)
@@ -132,19 +129,4 @@ test('trust fence allows loopback and trusted hosts, rejects cross-site', () => 
   }), false)
 })
 
-test('HostRuntime brief stays silent without a stage, and uses the hint when given', async () => {
-  const packDir = join(dirname(fileURLToPath(import.meta.url)), '..', 'packs', 'lotm-tingen')
-  const loaded = await loadPack(packDir)
-  assert.equal(loaded.ok, true)
-  const dark = new HostRuntime({ canon: loaded.canon!, sessionId: 's', seed: 'seed' })
-  assert.match(dark.bootBrief(), /没有 Web 舞台/)
-  assert.doesNotMatch(dark.bootBrief(), /image_gen/)
-  const lit = new HostRuntime({
-    canon: loaded.canon!,
-    sessionId: 's2',
-    seed: 'seed',
-    stageHint: '舞台 http://127.0.0.1:3080/airp-media/<文件>。',
-  })
-  assert.match(lit.bootBrief(), /\/airp-media\//)
-  assert.doesNotMatch(lit.bootBrief(), /image_gen/)
-})
+

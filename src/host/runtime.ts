@@ -129,7 +129,7 @@ export class HostRuntime {
       '',
       '你已经在引擎里。禁止再问引擎在哪、不要扫工作区、不要用 ask_user_question 找路径。',
       '开场直接叙述当前场景。用 lore_get / state_read / check_propose / state_propose_fact。',
-      this.stageHint ?? '没有 Web 舞台时不要贴图片路径。',
+      this.stageHint ?? '当前没有 Web 舞台；只叙述，不贴图片路径。',
     ].join('\n')
   }
 

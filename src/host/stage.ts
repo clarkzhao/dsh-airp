@@ -27,7 +27,6 @@ const MEDIA_TYPES: Record<string, string> = {
 export interface AirpStageAsset {
   fileName: string
   url?: string
-  markdown?: string
 }
 
 export interface AirpStage {
@@ -76,10 +75,7 @@ export function createAirpStage(opts: AirpStageOptions): AirpStage {
 
   const assetOf = (fileName: string): AirpStageAsset => {
     const url = markdownUrl(fileName)
-    return {
-      fileName,
-      ...(url ? { url, markdown: `![${fileName}](${url})` } : {}),
-    }
+    return { fileName, ...(url ? { url } : {}) }
   }
 
   return {
@@ -87,17 +83,15 @@ export function createAirpStage(opts: AirpStageOptions): AirpStage {
     markdownUrl,
     hint() {
       const origin = originOf()
-      if (!origin) return '没有 Web 舞台时不要贴图片路径。'
+      if (!origin) return '当前没有 Web 舞台；只叙述，不贴图片路径。'
       return [
         `舞台 ${origin}${AIRP_MEDIA_PREFIX}/<文件>。`,
-        '有出图工具时：开场、换场、人物首次亮相各出一张；把回执里的 http(s) URL 嵌进叙述该出现的位置。',
         `对白写 ![说明](${origin}${AIRP_MEDIA_PREFIX}/文件名.jpg)。Web 只渲染绝对 http(s)，且须同源。`,
-        '禁止本地路径、file://、data:。不要等工具卡出图。回执没有 http(s) 链接就只叙述。',
+        '禁止本地路径、file://、data:、相对 /path。不要等工具卡出图。回执没有 http(s) 链接就只叙述。',
       ].join('')
     },
     mountRoot(dir: string) {
       const root = resolve(dir)
-      if (root.split(sep).includes('..')) throw new Error('airpStage: mountRoot must not contain ..')
       mounts.push(root)
       return () => {
         const index = mounts.lastIndexOf(root)
