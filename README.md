@@ -49,11 +49,38 @@ npm run build
 
 ## 安装到 DSH web profile
 
+装一次进 **web profile**。之后每次 `dsh web`（即 `dsh --profile web`）都会按该 profile 的 `dsh.profile.bundles` 加载 Host 插件，不必每次 `plugin add`。
+
 ```bash
 dsh plugin --profile web add /path/to/dsh-airp
+# 出图（可选，不绑本仓）：同一 profile 再装 grok 聊天 + 生图
+dsh plugin --profile web add /path/to/dsh-llm-grok
+dsh plugin --profile web add /path/to/dsh-grok-image
 # 或
 npx @deepseek-ai/dsh plugin --profile web add /path/to/dsh-airp
 ```
+
+装完核对 `~/.dsh/profiles/web/package.json`：
+
+- `dependencies` 里有 `dsh-airp`（本地开发用 `link:`）
+- `dsh.profile.bundles` 里有 `dsh-airp`；要出图再并列 `dsh-llm-grok`、`dsh-grok-image`
+
+每次启动：
+
+```bash
+dsh web
+# 或指定端口
+dsh web --port 3080
+```
+
+| 层 | 谁 | 何时加载 |
+|---|---|---|
+| AIRP 引擎 + `airpStage`（`/airp-media`） | `dsh-airp` | web profile 启动即挂 |
+| Grok 聊天 | `dsh-llm-grok` | 装进同一 profile 后启动即挂 |
+| `image_gen` | `dsh-grok-image` | 装进同一 profile 后启动即挂；不要求 AIRP |
+| 玩世界 / 写包 | 会话选 `airp-play` / `airp-author` | **不会**随 `dsh web` 自动选 |
+
+Host 改动（含 `/airp-media`）要**重启** `dsh web`。HMR 不可靠。
 
 预设（从本仓复制，不要带 `tool-cordis`，也不要在 play preset 里挂 `play-mask`：`tools.restrict` 在挂载时全局工具表还是空的，New Session 会失败）：
 
@@ -62,9 +89,12 @@ cp -R presets/airp-play ~/.dsh/.agent-presets/airp-play
 cp -R presets/airp-author ~/.dsh/.agent-presets/airp-author
 ```
 
+`~/.dsh/settings.yaml` 的 `agent-presets.default` 建议保持 `standard`。新会话默认编码；要进世界再选 **AIRP 消费者**。不要把默认改成 `airp-play`，否则每次开 DSH 都弹入场卡。
+
 - **AIRP 消费者**（`airp-play`）会弹「加载世界」卡：新建或空白会话切到该 preset 都会问一次。
 - **AIRP 创造者**（`airp-author`）会弹「编辑世界」卡，并可「从零写一个新世界包」。
 - 卡片底部可粘贴含 `pack.yaml` 的目录；选自定义后不会再静默掉回廷根。
+- 出图：`image_gen` 来自 grok-image，不是 AIRP 工具。play 只在同时有出图工具和 brief 舞台 URL 时把同源绝对 http(s) 嵌进叙述。
 
 sandbox 只能写工作区。用户包推荐写到 `~/.dsh/airp-packs/`（host 插件写盘，不经过 agent sandbox）。
 
