@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { test } from 'node:test'
-import { BUNDLED_JZDH, BUNDLED_TINGEN, PICK_CUSTOM, PICK_CUSTOM_TRAVELER, PICK_EASY_DING, PICK_NEW_PACK, bootQuestion, bootQuestionFromRefs, isAskCancelled, looksLikePackPath, openRuntime, pathQuestion, presetFromSession, resolveBootChoice, resolvePathAnswer, resolveSeating, seatingQuestion, sessionIsBlank, shouldBootStory, travelerQuestion } from '../src/host/boot.ts'
+import { BUNDLED_JZDH, BUNDLED_TINGEN, PICK_CUSTOM, PICK_CUSTOM_TRAVELER, PICK_EASY_DING, PICK_NEW_PACK, bootQuestion, bootQuestionFromRefs, isAskCancelled, looksLikePackPath, openRuntime, pathQuestion, presetFromSession, resolveBootChoice, resolvePathAnswer, resolveSeating, seatingQuestion, sessionIsBlank, shouldBootStory, shouldReseatForPlay, travelerQuestion } from '../src/host/boot.ts'
 import { loadPack } from '../src/pack/pack.ts'
 
 const packsDir = join(dirname(fileURLToPath(import.meta.url)), '..', 'packs')
@@ -32,6 +32,9 @@ test('cancelling the pack picker is not a fatal error', () => {
 
 test('switching to airp-play while the session is still blank should boot', () => {
   assert.equal(shouldBootStory({ presetId: 'airp-play', source: 'startup', blank: true }), true)
+  assert.equal(shouldReseatForPlay({ presetId: 'airp-play', role: 'author', blank: true }), true)
+  assert.equal(shouldReseatForPlay({ presetId: 'airp-play', role: 'play', blank: true }), false)
+  assert.equal(shouldReseatForPlay({ presetId: 'airp-play', role: 'author', blank: false }), false)
   assert.equal(sessionIsBlank({ events: [{ type: 'agent-preset/selected' }] }), true)
   assert.equal(sessionIsBlank({ events: [{ type: 'turn/start' }] }), false)
   assert.equal(presetFromSession({

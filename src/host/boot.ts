@@ -63,6 +63,15 @@ export function shouldBootStory(opts: {
   return isPlayPreset(opts.presetId) || isAuthorPreset(opts.presetId)
 }
 
+/** Author can load a pack with no seating card. A still-blank switch to play must ask seating. */
+export function shouldReseatForPlay(opts: {
+  presetId?: string
+  role?: string
+  blank?: boolean
+}): boolean {
+  return isPlayPreset(opts.presetId) && opts.role === 'author' && opts.blank !== false
+}
+
 export function isAskCancelled(error: unknown): boolean {
   if (!error || typeof error !== 'object') return false
   const code = 'code' in error ? String((error as { code?: unknown }).code ?? '') : ''

@@ -6,7 +6,7 @@ import { defineTool } from '@deepseek-ai/dsh-tools'
 import type { Json } from './kernel/types.ts'
 import { denyAuthorTool, receiptText, roleFromPreset } from './host/translate.ts'
 import { HostRuntime } from './host/runtime.ts'
-import { bootQuestionFromRefs, isAskCancelled, isAuthorPreset, isPlayPreset, mergeBootAnswers, openRuntime, pathQuestion, PICK_NEW_PACK, presetFromSession, resolveBootChoice, resolvePathAnswer, resolveSeating, seatingNeedsTraveler, seatingQuestion, sessionIsBlank, shouldBootStory, travelerQuestion } from './host/boot.ts'
+import { bootQuestionFromRefs, isAskCancelled, isAuthorPreset, isPlayPreset, mergeBootAnswers, openRuntime, pathQuestion, PICK_NEW_PACK, presetFromSession, resolveBootChoice, resolvePathAnswer, resolveSeating, seatingNeedsTraveler, seatingQuestion, sessionIsBlank, shouldBootStory, shouldReseatForPlay, travelerQuestion } from './host/boot.ts'
 import { expandUserPath, loadCatalog, matchTags, resolveIcActors, resolvePackDir, tagsFromMeta, userPacksDir, type PackRef } from './pack/catalog.ts'
 import { loadPack, playableCharacters, playableScenes } from './pack/pack.ts'
 import { playHandoff } from './pack/handoff.ts'
@@ -41,6 +41,7 @@ export function apply(ctx: Context, config: Config): void {
   const runtimes = new Map<string, HostRuntime>()
   const lastScaffold = new Map<string, string>()
   const blocked = new Set<string>()
+  const pendingBoot = new Map<string, 'play' | 'author'>()
 
   const catalogOf = () => loadCatalog({ bundledDir: packsDir, userDir: extraUserDir })
 
@@ -67,16 +68,27 @@ export function apply(ctx: Context, config: Config): void {
     return agents?.get(id as never)
   }
 
-  const maybeBoot = (agent: { id: string; inject: (msg: never) => void; session?: { events?: ReadonlyArray<{ type?: string }> } }, source?: string) => {
-    if (runtimes.has(String(agent.id))) return
+  const maybeBoot = (agent: { id: string; inject: (msg: never) => void; session?: { events?: ReadonlyArray<{ type?: string }> } }, source?: string, selectedPreset?: string) => {
+    const key = String(agent.id)
+    const presetId = selectedPreset ?? sessionPreset(agent)
+    const existing = runtimes.get(key)
+    const blank = sessionIsBlank(agent.session)
+    if (existing && shouldReseatForPlay({ presetId, role: existing.playRole, blank })) {
+      runtimes.delete(key)
+      blocked.delete(key)
+    }
+    const want = isPlayPreset(presetId) ? 'play' as const : isAuthorPreset(presetId) ? 'author' as const : undefined
+    if (want && pendingBoot.get(key) === want) return
+    if (runtimes.has(key)) return
     if (!shouldBootStory({
-      presetId: sessionPreset(agent),
+      presetId,
       source,
-      blank: sessionIsBlank(agent.session),
-      alreadyBooted: runtimes.has(String(agent.id)),
+      blank,
+      alreadyBooted: runtimes.has(key),
     })) return
+    if (want) pendingBoot.set(key, want)
     const current = liveAgent(String(agent.id)) ?? agent
-    void bootSession(current).catch((error) => {
+    void bootSession(current, want === 'author').catch((error) => {
       if (isAskCancelled(error)) {
         blocked.add(String(agent.id))
         return
@@ -90,6 +102,8 @@ export function apply(ctx: Context, config: Config): void {
       } catch {
         /* inject may be unavailable before the session is live */
       }
+    }).finally(() => {
+      if (pendingBoot.get(key) === want) pendingBoot.delete(key)
     })
   }
 
@@ -150,10 +164,9 @@ export function apply(ctx: Context, config: Config): void {
     '已有产出的会话不能热切 preset。pack_open_play 只给交接说明，用户必须新开 airp-play。',
   ].join('\n')
 
-  const bootSession = async (agent: { id: string; inject: (msg: never) => void }) => {
+  const bootSession = async (agent: { id: string; inject: (msg: never) => void }, author = isAuthorPreset(sessionPreset(agent as never))) => {
     const key = String(agent.id)
     let choice
-    const author = isAuthorPreset(sessionPreset(agent as never))
     try {
       choice = await askChoice(agent, undefined, author)
     } catch (err) {
@@ -482,9 +495,9 @@ export function apply(ctx: Context, config: Config): void {
     if (typed.type !== 'agent-preset/selected') return
     if (!isPlayPreset(typed.data?.agentPreset) && !isAuthorPreset(typed.data?.agentPreset)) return
     const agents = ctx.get('agents')
-    const agent = agents?.get(session.id)
+    const agent = agents?.get(session.id as never)
     if (!agent) return
-    maybeBoot(agent, 'startup')
+    maybeBoot(agent, 'startup', typed.data?.agentPreset)
   })
 
   ctx.on('agent/pre-step', async (payload, next) => {

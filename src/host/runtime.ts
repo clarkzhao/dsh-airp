@@ -45,6 +45,10 @@ export class HostRuntime {
     this.role = opts.role ?? 'play'
   }
 
+  get playRole(): PlayRole {
+    return this.role
+  }
+
   get sessionId(): string {
     return this.id
   }
