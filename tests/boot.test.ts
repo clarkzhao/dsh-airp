@@ -2,7 +2,8 @@ import assert from 'node:assert/strict'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { test } from 'node:test'
-import { BUNDLED_JZDH, BUNDLED_TINGEN, PICK_CUSTOM, PICK_CUSTOM_TRAVELER, PICK_EASY_DING, PICK_NEW_PACK, bootQuestion, bootQuestionFromRefs, isAskCancelled, looksLikePackPath, openRuntime, pathQuestion, presetFromSession, resolveBootChoice, resolvePathAnswer, resolveSeating, seatingQuestion, sessionIsBlank, shouldBootStory, shouldReseatForPlay, travelerQuestion } from '../src/host/boot.ts'
+import { BUNDLED_JZDH, BUNDLED_TINGEN, PICK_CUSTOM, PICK_CUSTOM_TRAVELER, PICK_EASY_DING, PICK_NEW_PACK, bootLoadAttempt, bootQuestion, bootQuestionFromRefs, isAskCancelled, isHarnessNoise, looksLikePackPath, openRuntime, pathQuestion, presetFromSession, resolveBootChoice, resolvePathAnswer, resolveSeating, seatingQuestion, sessionIsBlank, shouldBootStory, shouldReseatForPlay, travelerQuestion } from '../src/host/boot.ts'
+import { injectNotice, pluginNotice } from '../src/host/inject.ts'
 import { loadPack } from '../src/pack/pack.ts'
 
 const packsDir = join(dirname(fileURLToPath(import.meta.url)), '..', 'packs')
@@ -28,6 +29,81 @@ test('cancelling the pack picker is not a fatal error', () => {
   assert.equal(isAskCancelled({ code: 'ASK_CANCELLED', message: 'the user cancelled ask_user_question' }), true)
   assert.equal(isAskCancelled({ code: 'ASK_ABORTED', message: 'ask_user_question was aborted before the user answered' }), true)
   assert.equal(isAskCancelled(new Error('unable to load pack')), false)
+})
+
+test('inbox already-pending is harness noise, not a missing pack.yaml', () => {
+  assert.equal(isHarnessNoise(new Error('message "undefined" is already pending')), true)
+  assert.equal(isHarnessNoise(new Error('invalid inbox splice')), true)
+  assert.equal(isHarnessNoise(new TypeError("Cannot read properties of undefined (reading 'send')")), true)
+  assert.equal(isHarnessNoise(new Error('无法加载世界包 /tmp/x: pack.yaml missing')), false)
+  const first = pluginNotice('AIRP 已加载 剑烛大荒·全图')
+  const second = pluginNotice('AIRP 已加载 剑烛大荒·全图')
+  assert.ok(first.id)
+  assert.notEqual(first.id, second.id)
+  assert.equal(first.source.form, 'notice')
+  assert.equal(first.role, 'user')
+})
+
+test('bootLoadAttempt keeps a loaded pack even if inject throws send/pending', async () => {
+  const loaded = await bootLoadAttempt({
+    load: async () => ({ id: 'jzdh-atlas' }),
+    afterLoad: () => {
+      throw new TypeError("Cannot read properties of undefined (reading 'send')")
+    },
+  })
+  assert.deepEqual(loaded, { kind: 'loaded', runtime: { id: 'jzdh-atlas' } })
+
+  const pending = await bootLoadAttempt({
+    load: async () => ({ id: 'jzdh-atlas' }),
+    afterLoad: () => {
+      throw new Error('message "undefined" is already pending')
+    },
+  })
+  assert.equal(pending.kind, 'loaded')
+
+  const missing = await bootLoadAttempt({
+    load: async () => {
+      throw new Error('无法加载世界包 /tmp/x: pack.yaml missing')
+    },
+    afterLoad: () => {
+      throw new Error('should not run afterLoad')
+    },
+  })
+  assert.deepEqual(missing, { kind: 'retry', error: '无法加载世界包 /tmp/x: pack.yaml missing' })
+
+  const abort = await bootLoadAttempt({
+    load: async () => {
+      throw new TypeError("Cannot read properties of undefined (reading 'send')")
+    },
+  })
+  assert.equal(abort.kind, 'abort')
+})
+
+test('injectNotice calls agent.inject as a method and swallows inbox errors', () => {
+  class FakeAgent {
+    calls: unknown[] = []
+    send(msg: unknown) {
+      this.calls.push(msg)
+    }
+    inject(msg: unknown) {
+      this.send(msg)
+    }
+  }
+  const agent = new FakeAgent()
+  assert.throws(() => {
+    const detached = agent.inject
+    detached({ id: 'x' })
+  }, /reading ['"]send['"]/)
+  injectNotice(agent, 'AIRP 已加载 剑烛大荒·全图')
+  assert.equal(agent.calls.length, 1)
+  const notice = agent.calls[0] as { id?: string; source?: { kind?: string } }
+  assert.ok(notice.id)
+  assert.equal(notice.source?.kind, 'plugin')
+  assert.doesNotThrow(() => injectNotice({
+    inject() {
+      throw new Error('message "undefined" is already pending')
+    },
+  }, 'brief'))
 })
 
 test('switching to airp-play while the session is still blank should boot', () => {
@@ -179,6 +255,13 @@ test('boot card lists dingjiang demo and author can pick new pack', () => {
   assert.deepEqual(resolveBootChoice({ answers: [{ id: 'boot_pack', selected: [PICK_NEW_PACK] }] }), {
     kind: 'new-pack',
   })
+  assert.deepEqual(resolveBootChoice({
+    answers: [{ id: 'boot_pack', selected: ['剑烛大荒·全图'] }],
+  }, [
+    { id: 'lotm-tingen', title: '廷根切片', dir: 'x', origin: 'bundled' },
+    { id: 'jzdh-dingjiang', title: '剑烛大荒·定江切片', dir: 'y', origin: 'bundled' },
+    { id: 'jzdh-atlas', title: '剑烛大荒·全图', dir: '/tmp/jzdh-atlas', origin: 'user' },
+  ]), { kind: 'bundled', packId: 'jzdh-atlas' })
 })
 
 test('pick-custom without a path asks again and does not fall back to tingen', () => {

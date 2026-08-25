@@ -7,8 +7,9 @@ import { defineTool } from '@deepseek-ai/dsh-tools'
 import type { Json } from './kernel/types.ts'
 import { denyAuthorTool, receiptText, roleFromPreset } from './host/translate.ts'
 import { AIRP_MEDIA_PREFIX, createAirpStage, loopbackOrigin, type AirpStage } from './host/stage.ts'
+import { injectNotice } from './host/inject.ts'
 import { HostRuntime } from './host/runtime.ts'
-import { bootQuestionFromRefs, isAskCancelled, isAuthorPreset, isPlayPreset, mergeBootAnswers, openRuntime, pathQuestion, PICK_NEW_PACK, presetFromSession, resolveBootChoice, resolvePathAnswer, resolveSeating, seatingNeedsTraveler, seatingQuestion, sessionIsBlank, shouldBootStory, shouldReseatForPlay, travelerQuestion } from './host/boot.ts'
+import { bootLoadAttempt, bootQuestionFromRefs, isAskCancelled, isAuthorPreset, isPlayPreset, mergeBootAnswers, openRuntime, pathQuestion, PICK_NEW_PACK, presetFromSession, resolveBootChoice, resolvePathAnswer, resolveSeating, seatingNeedsTraveler, seatingQuestion, sessionIsBlank, shouldBootStory, shouldReseatForPlay, travelerQuestion } from './host/boot.ts'
 import { expandUserPath, loadCatalog, matchTags, resolveIcActors, resolvePackDir, tagsFromMeta, userPacksDir, type PackRef } from './pack/catalog.ts'
 import { loadPack, playableCharacters, playableScenes } from './pack/pack.ts'
 import { playHandoff } from './pack/handoff.ts'
@@ -122,14 +123,7 @@ export function apply(ctx: Context, config: Config): void {
         return
       }
       const message = error instanceof Error ? error.message : String(error)
-      try {
-        agent.inject({
-          content: [{ type: 'text', text: `AIRP 开局卡没能弹出：${message}` }],
-          source: { kind: 'plugin', plugin: 'dsh-airp' },
-        } as never)
-      } catch {
-        /* inject may be unavailable before the session is live */
-      }
+      injectNotice(agent, `AIRP 开局卡没能弹出：${message}`)
     }).finally(() => {
       if (pendingBoot.get(key) === want) pendingBoot.delete(key)
     })
@@ -205,66 +199,57 @@ export function apply(ctx: Context, config: Config): void {
       throw err
     }
     if (author && choice.kind === 'new-pack') {
-      agent.inject({
-        content: [{ type: 'text', text: `${authorGuide}\n\n用户选择从零写包。pack_interview 取两屏，ask_user_question 各问一次，再 pack_scaffold。` }],
-        source: { kind: 'plugin', plugin: 'dsh-airp' },
-      } as never)
+      injectNotice(agent, `${authorGuide}\n\n用户选择从零写包。pack_interview 取两屏，ask_user_question 各问一次，再 pack_scaffold。`)
       return
     }
     for (let attempt = 0; attempt < 3; attempt += 1) {
+      const packChoice = choice.kind === 'new-pack'
+        ? { kind: 'bundled' as const, packId: config.defaultPack ?? 'lotm-tingen' }
+        : choice
+      const result = await bootLoadAttempt({
+        load: async () => {
+          const catalog = await catalogOf()
+          const dir = packChoice.kind === 'custom'
+            ? expandUserPath(packChoice.path)
+            : await resolvePackDir({ catalog, packId: packChoice.packId })
+          let seat
+          if (!author) seat = await askSeating(agent, dir)
+          const created = await openRuntime({
+            packsDir,
+            userDir: extraUserDir,
+            sessionId: key,
+            choice: packChoice,
+            role: author ? 'author' : 'play',
+            seat,
+            stageHint: stage.hint(),
+          })
+          if (config.loreBudgetChars) created.canon.meta.loreBudgetChars = config.loreBudgetChars
+          return created
+        },
+        afterLoad: (created) => {
+          blocked.delete(key)
+          runtimes.set(key, created)
+          const brief = author ? `${authorGuide}\n\n当前加载：\n${created.bootBrief()}` : created.bootBrief()
+          injectNotice(agent, brief, `AIRP 已加载 ${created.canon.meta.title}`)
+        },
+      })
+      if (result.kind === 'loaded') return result.runtime
+      if (result.kind === 'cancelled') {
+        blocked.add(key)
+        return
+      }
+      if (result.kind === 'abort') {
+        injectNotice(agent, `AIRP 开局卡没能弹出：${result.error}`)
+        return
+      }
       try {
-        const packChoice = choice.kind === 'new-pack'
-          ? { kind: 'bundled' as const, packId: config.defaultPack ?? 'lotm-tingen' }
-          : choice
-        const catalog = await catalogOf()
-        const dir = packChoice.kind === 'custom'
-          ? expandUserPath(packChoice.path)
-          : await resolvePackDir({ catalog, packId: packChoice.packId })
-        let seat
-        if (!author) {
-          try {
-            seat = await askSeating(agent, dir)
-          } catch (err) {
-            if (isAskCancelled(err)) {
-              blocked.add(key)
-              return
-            }
-            throw err
-          }
-        }
-        const created = await openRuntime({
-          packsDir,
-          userDir: extraUserDir,
-          sessionId: key,
-          choice: packChoice,
-          role: author ? 'author' : 'play',
-          seat,
-          stageHint: stage.hint(),
-        })
-        if (config.loreBudgetChars) created.canon.meta.loreBudgetChars = config.loreBudgetChars
-        blocked.delete(key)
-        runtimes.set(key, created)
-        const brief = author ? `${authorGuide}\n\n当前加载：\n${created.bootBrief()}` : created.bootBrief()
-        agent.inject({
-          content: [{ type: 'text', text: brief }],
-          source: { kind: 'plugin', plugin: 'dsh-airp' },
-        } as never)
-        return created
-      } catch (err) {
-        if (isAskCancelled(err)) {
+        choice = await askChoice(agent, result.error, author)
+      } catch (again) {
+        if (isAskCancelled(again)) {
           blocked.add(key)
           return
         }
-        const message = err instanceof Error ? err.message : String(err)
-        try {
-          choice = await askChoice(agent, message, author)
-        } catch (again) {
-          if (isAskCancelled(again)) {
-            blocked.add(key)
-            return
-          }
-          throw again
-        }
+        throw again
       }
     }
   }
@@ -485,17 +470,9 @@ export function apply(ctx: Context, config: Config): void {
             }
           }
           if (inv.agent && name !== 'ooc') {
-              const inject = (inv.agent as { inject?: (msg: never) => void }).inject
-              if (typeof inject === 'function') {
-                try {
-                  inject({
-                    content: [{ type: 'text', text: 'AIRP /' + name + ' 引擎结果（内存存档，不是磁盘文件）：\n' + out.text }],
-                    source: { kind: 'user' },
-                  } as never)
-                } catch (e) {}
-              }
-            }
-            return { kind: out.ok ? 'success' as const : 'error' as const, text: out.text }
+            injectNotice(inv.agent as { inject?: (msg: never) => void }, 'AIRP /' + name + ' 引擎结果（内存存档，不是磁盘文件）：\n' + out.text, `AIRP /${name}`)
+          }
+          return { kind: out.ok ? 'success' as const : 'error' as const, text: out.text }
         },
       })
     }
@@ -553,10 +530,7 @@ export function apply(ctx: Context, config: Config): void {
       const actors = resolveIcActors(text, snap.state.present, rt.canon.characters)
       const out = rt.dispatch({ kind: 'ic', tags, actors })
       if (out.forced && out.result.ok) {
-        payload.agent.inject({
-          content: [{ type: 'text', text: `Forced AIRP check already resolved:\n${receiptText(out.result)}\nNarrate only this receipt. Do not re-adjudicate.` }],
-          source: { kind: 'user' },
-        } as never)
+        injectNotice(payload.agent, `Forced AIRP check already resolved:\n${receiptText(out.result)}\nNarrate only this receipt. Do not re-adjudicate.`, 'AIRP 鉴定已结算')
       }
     } catch { /* do not block the turn */ }
     return next()
@@ -569,7 +543,7 @@ export { loadCatalog, matchTags, resolveIcActors, tagsFromMeta, userPacksDir } f
 export { interviewCard, interviewScreens, parseInterview } from './pack/interview.ts'
 export { intentFromTool, intentFromCommand, toolsFor } from './host/translate.ts'
 export { HostRuntime } from './host/runtime.ts'
-export { shouldBootStory, resolveBootChoice, resolvePathAnswer } from './host/boot.ts'
+export { shouldBootStory, resolveBootChoice, resolvePathAnswer, bootLoadAttempt, isHarnessNoise } from './host/boot.ts'
 export {
   AIRP_MEDIA_PREFIX,
   createAirpStage,

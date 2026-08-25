@@ -79,6 +79,43 @@ export function isAskCancelled(error: unknown): boolean {
   return code === 'ASK_CANCELLED' || code === 'ASK_ABORTED' || /cancelled ask_user_question|aborted before the user answered/i.test(message)
 }
 
+/** Inbox / inject failures are not a missing pack.yaml. Do not re-prompt for a directory. */
+export function isHarnessNoise(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error)
+  return /is already pending|invalid inbox splice|reading ['"]send['"]/i.test(message)
+}
+
+export type BootLoadAttempt<T> =
+  | { kind: 'loaded'; runtime: T }
+  | { kind: 'cancelled' }
+  | { kind: 'retry'; error: string }
+  | { kind: 'abort'; error: string }
+
+/**
+ * One boot-card attempt: load the pack, then seed the model. Inject/inbox
+ * failures after a successful load must not bounce the user back to a path card.
+ */
+export async function bootLoadAttempt<T>(opts: {
+  load: () => Promise<T>
+  afterLoad?: (runtime: T) => void
+}): Promise<BootLoadAttempt<T>> {
+  try {
+    const runtime = await opts.load()
+    try {
+      opts.afterLoad?.(runtime)
+    } catch (err) {
+      if (isAskCancelled(err)) return { kind: 'cancelled' }
+      return { kind: 'loaded', runtime }
+    }
+    return { kind: 'loaded', runtime }
+  } catch (err) {
+    if (isAskCancelled(err)) return { kind: 'cancelled' }
+    const error = err instanceof Error ? err.message : String(err)
+    if (isHarnessNoise(err)) return { kind: 'abort', error }
+    return { kind: 'retry', error }
+  }
+}
+
 export function looksLikePackPath(value: string): boolean {
   const text = value.trim()
   if (!text || text === PICK_CUSTOM || text === BUNDLED_TINGEN || text === BUNDLED_JZDH || text === PICK_NEW_PACK) return false
