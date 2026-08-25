@@ -75,4 +75,4 @@
 - **lotm-tingen**：v0 切片包（廷根，愚者 S9–S8，一条委托）。
 - **provisional 卡**：未写入正式包的临时路人卡。
 - **资产矿**：ST 角色卡/世界书只作语义迁移原料，不作运行时格式。
-- **airpStage / 舞台**：Host 可选呈现 seam。`publish`/`mountRoot` 把本地图挂到 `/airp-media`，返回同源绝对 http(s) URL 给叙述者嵌进对白。不进 Kernel，不加 play 工具，不绑 grok-image。
+- **airpStage / 舞台**：Host 可选呈现 seam。`publish`/`mountRoot` 把本地图挂到 `/airp-media`，返回同源绝对 http(s) URL 给叙述者嵌进对白。不进 Kernel，不加 play 工具，不绑某一家生图。

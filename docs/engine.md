@@ -278,10 +278,11 @@ Kernel 没有图、没有 TTS。叙述者读 `receipt` 写散文。Host 另有�
 
 - 不新开 play 工具。出图工具（`image_gen` 或别的）是别的插件。
 - `ctx.airpStage.publish({ filePath })` 把文件拷进舞台目录，返回同源绝对 http(s) URL。
-- `mountRoot(dir)` 把已有目录挂到 `/airp-media`（适配器自己的落盘目录）。
+- `mountRoot(dir)` 把已有目录挂到 `/airp-media`（适配器自己的落盘目录）。已有落盘目录的适配器选这个，不要再 `publish` 拷一份。
 - Web Markdown 只渲染绝对 `http:`/`https:`。相对 `/airp-media/…`、`file://`、`data:` 都会被丢掉。
-- 叙述者把 `markdownUrl` 嵌进对白该出现的位置，不要指望工具卡出图。
-- 没有 `webServer` 时 `markdownUrl` 为 `undefined`，brief 写「没有 Web 舞台」，不要贴路径。
+- 叙述者把回执里的绝对 URL 嵌进对白该出现的位置，不要指望工具卡出图。
+- 没有 `webServer` 时 `markdownUrl` 为 `undefined`，brief 写「当前没有 Web 舞台」，不要贴路径。
+- `hint()` 只写运输规则。出图节奏（开场/换场各一张）只放 play persona。
 
 第二种生图实现接同一个 seam，不要再给某一家出图插件开第二条媒体路由。
 
