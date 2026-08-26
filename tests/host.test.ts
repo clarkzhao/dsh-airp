@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { denyAuthorTool, intentFromCommand, intentFromTool, isAuthorTool, roleFromPreset, toolsFor } from '../src/host/translate.ts'
+import { denyAuthorTool, DIRECTOR_COMMANDS, intentFromCommand, intentFromTool, isAuthorTool, roleFromPreset, toolsFor } from '../src/host/translate.ts'
 
 test('play mask does not include pack_validate', () => {
   assert.deepEqual([...toolsFor('play')], ['lore_get', 'state_read', 'check_match', 'check_propose', 'state_propose_fact'])
@@ -50,4 +50,14 @@ test('gm parses pointer and required reason', () => {
     reason: '卡死了',
   })
   assert.equal('error' in intentFromCommand('gm', 'facts.alarm=true'), true)
+  assert.equal('error' in intentFromCommand('gm', ''), true)
+})
+
+test('director commands advertise composer input so Web does not fire bare /gm', () => {
+  const byName = Object.fromEntries(DIRECTOR_COMMANDS.map((row) => [row.name, row.hint]))
+  assert.deepEqual(Object.keys(byName), ['look', 'state', 'retry', 'gm', 'correct', 'ooc'])
+  assert.equal(byName.gm, '<pointer>=<json> :: <reason>')
+  assert.equal(byName.correct, '<pointer>=<json> :: <reason>')
+  assert.match(byName.look, /pointer/)
+  assert.match(byName.ooc, /note/)
 })

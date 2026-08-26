@@ -6,6 +6,16 @@ export type PlayRole = 'play' | 'author'
 export const PLAY_TOOLS = ['lore_get', 'state_read', 'check_match', 'check_propose', 'state_propose_fact'] as const
 export const AUTHOR_EXTRA_TOOLS = ['pack_validate', 'pack_scaffold', 'pack_open_play', 'pack_interview'] as const
 
+/** Host slash commands. `hint` is advertised so Web claims the composer instead of firing a bare `/gm`. */
+export const DIRECTOR_COMMANDS = [
+  { name: 'look', hint: '[<pointer>]' },
+  { name: 'state', hint: '[<pointer>]' },
+  { name: 'retry', hint: '[<checkId>]' },
+  { name: 'gm', hint: '<pointer>=<json> :: <reason>' },
+  { name: 'correct', hint: '<pointer>=<json> :: <reason>' },
+  { name: 'ooc', hint: '<note>' },
+] as const
+
 export function toolsFor(role: PlayRole): readonly string[] {
   return role === 'author' ? [...PLAY_TOOLS, ...AUTHOR_EXTRA_TOOLS] : PLAY_TOOLS
 }

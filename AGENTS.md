@@ -34,7 +34,7 @@ turn(state, intent, options?) → TurnResult   # { ok, state, receipt, events }
 
 `options` 可注入 `u` / `rng`。错误码见 `KernelErrorCode`。重放在 Host。测试打 `TurnResult` / `PackDiagnostic`。
 
-**Host Adapter**（`src/host/runtime.ts` `boot.ts` `translate.ts` `stage.ts`，`src/index.ts`）：工具译成 `Intent`。`StoryEvent[]` 在内存 `log`，不是 DSH JSONL。`/retry` 按该 log replay（`sessions.fork` 只分叉聊天）。brief：每轮 `indexText()`。可选 `airpStage`：`/airp-media` + `publish`/`mountRoot`，出图插件自己挂上来。
+**Host Adapter**（`src/host/runtime.ts` `boot.ts` `translate.ts` `stage.ts`，`src/index.ts`）：工具译成 `Intent`。`StoryEvent[]` 在内存 `log`，不是 DSH JSONL。`/retry` 按该 log replay（`sessions.fork` 只分叉聊天）。brief：每轮 `indexText()`。可选 `airpStage`：`/airp-media` + `publish`/`mountRoot`，出图插件自己挂上来。`webServer` 用 `ctx.inject` 挂路由，不要 `apply()` 时一次性 `ctx.get`。导演命令必须带 `input.hint`，否则 Web 菜单会发裸 `/gm`。
 
 **Pack Seam**（`src/pack/pack.ts` `catalog.ts`）：`loadPack` / `validatePack` / `initialState` / `applySeating`。**只有 Kernel 禁止世界名**；Host/Pack 开局可以写定江（`arrival`、座位卡）。
 
