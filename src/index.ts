@@ -5,7 +5,7 @@ import type { Context } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
 import { defineTool } from '@deepseek-ai/dsh-tools'
 import type { Json } from './kernel/types.ts'
-import { denyAuthorTool, receiptText, roleFromPreset } from './host/translate.ts'
+import { denyAuthorTool, DIRECTOR_COMMANDS, receiptText, roleFromPreset } from './host/translate.ts'
 import { AIRP_MEDIA_PREFIX, createAirpStage, loopbackOrigin, type AirpStage } from './host/stage.ts'
 import { injectNotice } from './host/inject.ts'
 import { HostRuntime } from './host/runtime.ts'
@@ -57,16 +57,20 @@ export function apply(ctx: Context, config: Config): void {
     },
   })
   ctx.provide('airpStage', stage)
-  const webServer = ctx.get('webServer') as {
-    register: (route: { kind: 'prefix' | 'exact'; path: string; handler: AirpStage['handle'] }) => () => void
-  } | undefined
-  if (webServer) {
-    ctx.effect(() => webServer.register({
+  // webServer is optional: CLI / headless have none. When the Web host
+  // provides it later (or already has), hang /airp-media. ctx.get at
+  // apply() time misses the route if this plugin activates first.
+  ctx.inject(['webServer'], (web) => {
+    const webServer = web.get('webServer') as {
+      register: (route: { kind: 'prefix' | 'exact'; path: string; handler: AirpStage['handle'] }) => () => void
+    } | undefined
+    if (!webServer) return
+    web.effect(() => webServer.register({
       kind: 'prefix',
       path: AIRP_MEDIA_PREFIX,
       handler: (req, res) => stage.handle(req, res),
     }), 'dsh-airp: /airp-media stage route')
-  }
+  })
   const runtimes = new Map<string, HostRuntime>()
   const lastScaffold = new Map<string, string>()
   const blocked = new Set<string>()
@@ -452,13 +456,22 @@ export function apply(ctx: Context, config: Config): void {
     }))
   }
 
-  const commands = ctx.get('commands')
-  if (commands) {
-    for (const name of ['look', 'state', 'retry', 'gm', 'correct', 'ooc']) {
-      commands.register({
+  ctx.inject(['commands'], (cmd) => {
+    const commands = cmd.get('commands') as {
+      register: (definition: {
+        name: string
+        description: string
+        input: { hint: string }
+        handler: (inv: { rawInput: string; agent?: { session?: { id?: string }; id?: string } }) => Promise<{ kind: 'success' | 'error'; text: string }>
+      }) => () => void
+    } | undefined
+    if (!commands) return
+    for (const { name, hint } of DIRECTOR_COMMANDS) {
+      cmd.effect(() => commands.register({
         name,
         description: `AIRP director command /${name}`,
-        handler: async (inv: { rawInput: string; agent?: { session?: { id?: string }; id?: string } }) => {
+        input: { hint },
+        handler: async (inv) => {
           const rt = await loadRuntime(sessionKey(inv))
           const out = rt.dispatch({ kind: 'command', name, rawInput: inv.rawInput })
           if (out.forkedFrom) {
@@ -474,9 +487,9 @@ export function apply(ctx: Context, config: Config): void {
           }
           return { kind: out.ok ? 'success' as const : 'error' as const, text: out.text }
         },
-      })
+      }), `dsh-airp: /${name}`)
     }
-  }
+  })
 
   const systemPrompt = ctx.get('systemPrompt')
   if (systemPrompt) {
