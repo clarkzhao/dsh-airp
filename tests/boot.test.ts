@@ -111,11 +111,11 @@ test('switching to airp-play while the session is still blank should boot', () =
   assert.equal(shouldReseatForPlay({ presetId: 'airp-play', role: 'author', blank: true }), true)
   assert.equal(shouldReseatForPlay({ presetId: 'airp-play', role: 'play', blank: true }), false)
   assert.equal(shouldReseatForPlay({ presetId: 'airp-play', role: 'author', blank: false }), false)
-  assert.equal(sessionIsBlank({ events: [{ type: 'agent-preset/selected' }] }), true)
-  assert.equal(sessionIsBlank({ events: [{ type: 'turn/start' }] }), false)
+  assert.equal(sessionIsBlank({ snapshotEvents: () => [{ type: 'agent-preset/selected' }] }), true)
+  assert.equal(sessionIsBlank({ snapshotEvents: () => [{ type: 'turn/start' }] }), false)
   assert.equal(presetFromSession({
     header: { agentPreset: 'standard' },
-    events: [{ type: 'agent-preset/selected', data: { agentPreset: 'airp-play' } }],
+    snapshotEvents: () => [{ type: 'agent-preset/selected', data: { agentPreset: 'airp-play' } }],
   }), 'airp-play')
 })
 

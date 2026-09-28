@@ -9,7 +9,7 @@ import { denyAuthorTool, DIRECTOR_COMMANDS, receiptText, roleFromPreset } from '
 import { AIRP_MEDIA_PREFIX, createAirpStage, loopbackOrigin, type AirpStage } from './host/stage.ts'
 import { injectNotice } from './host/inject.ts'
 import { HostRuntime } from './host/runtime.ts'
-import { bootLoadAttempt, bootQuestionFromRefs, isAskCancelled, isAuthorPreset, isPlayPreset, mergeBootAnswers, openRuntime, pathQuestion, PICK_NEW_PACK, presetFromSession, resolveBootChoice, resolvePathAnswer, resolveSeating, seatingNeedsTraveler, seatingQuestion, sessionIsBlank, shouldBootStory, shouldReseatForPlay, travelerQuestion } from './host/boot.ts'
+import { bootLoadAttempt, bootQuestionFromRefs, isAskCancelled, isAuthorPreset, isPlayPreset, mergeBootAnswers, openRuntime, pathQuestion, PICK_NEW_PACK, presetFromSession, resolveBootChoice, resolvePathAnswer, resolveSeating, seatingNeedsTraveler, seatingQuestion, sessionIsBlank, shouldBootStory, shouldReseatForPlay, travelerQuestion, type SessionEventsView } from './host/boot.ts'
 import { expandUserPath, loadCatalog, matchTags, resolveIcActors, resolvePackDir, tagsFromMeta, userPacksDir, type PackRef } from './pack/catalog.ts'
 import { loadPack, playableCharacters, playableScenes } from './pack/pack.ts'
 import { playHandoff } from './pack/handoff.ts'
@@ -86,7 +86,7 @@ export function apply(ctx: Context, config: Config): void {
   }
 
   const sessionPreset = (agent: {
-    session?: { header?: { agentPreset?: string }; events?: ReadonlyArray<{ type?: string; data?: unknown }> }
+    session?: SessionEventsView
     ctx?: unknown
   }) => {
     const fromLog = presetFromSession(agent.session as Parameters<typeof presetFromSession>[0])
@@ -101,7 +101,7 @@ export function apply(ctx: Context, config: Config): void {
     return agents?.get(id as never)
   }
 
-  const maybeBoot = (agent: { id: string; inject: (msg: never) => void; session?: { events?: ReadonlyArray<{ type?: string }> } }, source?: string, selectedPreset?: string) => {
+  const maybeBoot = (agent: { id: string; inject: (msg: never) => void; session?: SessionEventsView }, source?: string, selectedPreset?: string) => {
     const key = String(agent.id)
     const presetId = selectedPreset ?? sessionPreset(agent)
     const existing = runtimes.get(key)
@@ -267,7 +267,7 @@ export function apply(ctx: Context, config: Config): void {
       },
     }
 
-    const runTool = async (name: string, args: Record<string, unknown>, exec?: { agent?: { session?: { id?: string; header?: { agentPreset?: string }; events?: ReadonlyArray<{ type?: string; data?: unknown }> }; id?: string; ctx?: unknown } }) => {
+    const runTool = async (name: string, args: Record<string, unknown>, exec?: { agent?: { session?: SessionEventsView & { id?: string }; id?: string; ctx?: unknown } }) => {
       const denied = denyAuthorTool(name, roleFromPreset(sessionPreset(exec?.agent ?? {})))
       if (denied) throw new Error(denied)
       if (name === 'pack_validate') {
@@ -505,10 +505,8 @@ export function apply(ctx: Context, config: Config): void {
     })
   }
 
-  ctx.on('agent/session-start', (payload) => {
-    maybeBoot(payload.agent, payload.source)
-  })
-
+  // DSH 0.1.7 removed the `agent/session-start` event (nothing emits it), so
+  // boot is driven solely by the preset-selected path below.
   ctx.on('session/event', (session, event) => {
     const typed = event as { type?: string; data?: { agentPreset?: string } }
     if (typed.type !== 'agent-preset/selected') return
@@ -525,7 +523,7 @@ export function apply(ctx: Context, config: Config): void {
     const texts = (payload.messages ?? []).flatMap((message) => {
       const source = (message as { source?: { kind?: string } }).source?.kind
       if (source !== 'user') return []
-      const content = (message as { content?: Array<{ type?: string; text?: string }> }).content
+      const content = (message as { content?: ReadonlyArray<{ type?: string; text?: string }> }).content
       if (!Array.isArray(content)) return []
       return content.filter((part) => part?.type === 'text' && part.text).map((part) => part.text as string)
     })

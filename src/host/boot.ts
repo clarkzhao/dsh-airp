@@ -34,19 +34,29 @@ export function isAuthorPreset(presetId?: string): boolean {
   return presetId === AUTHOR_PRESET_ID
 }
 
-export function sessionIsBlank(session?: { events?: ReadonlyArray<{ type?: string }> }): boolean {
-  return !session?.events?.some((event) => event.type === 'turn/start')
+/**
+ * A session's readable surface for boot decisions. DSH 0.1.7 replaced the old
+ * plain `{ events }` shape with the event-sourced `Session` class, whose
+ * supported read is `snapshotEvents()`; keep this structural so tests can pass
+ * a tiny fake.
+ */
+export interface SessionEventsView {
+  header?: { agentPreset?: string }
+  snapshotEvents?: () => ReadonlyArray<{ type?: string; data?: unknown }>
 }
 
-export function presetFromSession(session?: {
-  header?: { agentPreset?: string }
-  events?: ReadonlyArray<{ type?: string; data?: { agentPreset?: string } }>
-}): string | undefined {
-  const events = session?.events
+export function sessionIsBlank(session?: SessionEventsView): boolean {
+  return !session?.snapshotEvents?.().some((event) => event.type === 'turn/start')
+}
+
+export function presetFromSession(session?: SessionEventsView): string | undefined {
+  const events = session?.snapshotEvents?.()
   if (events) {
     for (let index = events.length - 1; index >= 0; index -= 1) {
       const event = events[index]
-      if (event?.type === 'agent-preset/selected' && event.data?.agentPreset) return event.data.agentPreset
+      if (event?.type !== 'agent-preset/selected') continue
+      const preset = (event.data as { agentPreset?: string } | undefined)?.agentPreset
+      if (preset) return preset
     }
   }
   return session?.header?.agentPreset
