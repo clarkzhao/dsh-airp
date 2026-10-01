@@ -7,6 +7,8 @@
 | [engine.md](./engine.md) | WorldKernel + Adapter 方案 |
 | [glossary.md](./glossary.md) | 术语（以文末「AIRP 现行」为准） |
 | [worldbook-authoring.md](./worldbook-authoring.md) | 作者写包：ST 对照、条目规范、8 问、反模式 |
+| [adversarial/airp-play.md](./adversarial/airp-play.md) | 消费者对抗表：用户句 → 最可能动作 → 代码会不会翻车 |
+| [adversarial/airp-author.md](./adversarial/airp-author.md) | 创造者对抗表：pack_scaffold 守卫、热切 preset |
 | [research/st-worldbook-spacetime.md](./research/st-worldbook-spacetime.md) | ST 世界书如何写时空：学句子，不学扫描器 |
 | [adr/0008…](./adr/0008-st-as-reference-and-asset-mine.md) | ST 只当参考与资产矿 |
 | [adr/0009…](./adr/0009-airp-presets-and-host-plugin.md) | 两个 preset + Host 插件 |
