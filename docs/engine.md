@@ -323,12 +323,16 @@ dsh-airp/                    # 插件仓 = Kernel + Adapter
     host/                    # DshHostAdapter
   tests/                     # 只打 TurnResult / Pack 诊断
 packs/lotm-tingen/           # 数据，独立目录
-~/.dsh/.agent-presets/
-  airp-play/
-  airp-author/               # 从最小壳 copy，只改工具掩码
+presets/
+  airp-play.patch.yml        # @deepseek-ai/dsh-agent-preset 声明行，随 bundle 装载
+  airp-author.patch.yml
+skills/worldbook-authoring/  # 用户 skill root（~/.dsh/skills）里装一份
 ```
 
 `dsh plugin --profile web add ./dsh-airp`。测试 `load(fixturePack)` 后直接 `turn`，不 `apply(ctx)`。
+
+DSH 0.2.0 起旧的 `$DSH_HOME/.agent-presets/<id>/` 目录不再被任何东西读取；preset 只能由
+bundle patch 里的 `@deepseek-ai/dsh-agent-preset` 行声明。
 
 ---
 

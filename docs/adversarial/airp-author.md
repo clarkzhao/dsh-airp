@@ -1,6 +1,6 @@
 # 创造者对抗测试（第二轮：模拟真实 airp-author 上下文）
 
-依据：persona（`presets/airp-author/agent.cordis.yml`）+ boot 注入（从零写包）+ 当前 `src/` 代码逐行复核与实证（node 探针、`fs.statSync` inode、`displayName` 实跑）。只读，未改 `src/`、`presets/`。
+依据：persona（`presets/airp-author.patch.yml`）+ boot 注入（从零写包）+ 当前 `src/` 代码逐行复核与实证（node 探针、`fs.statSync` inode、`displayName` 实跑）。只读，未改 `src/`、`presets/`。
 
 ## 1. 逐步：用户句 → 创造者最可能动作 → 现在会不会翻车
 
@@ -17,7 +17,7 @@
 1. **DEMO_WRITE 大小写绕过**：`isBundledDemoPath`（scaffold.ts:50-53）只做 `endsWith` 不做 `toLowerCase()`；`expandUserPath`（catalog.ts:38-40）只 `resolve` 不做 realpath。本机文件系统大小写不敏感（实证 `packs/JZDH-DINGJIANG` 与 `packs/jzdh-dingjiang` 同 inode 19220276），所以 `destDir` 写成仓库 `packs/JZDH-DINGJIANG` 的绝对路径（任意大小写变体）会通过守卫，随后 `mkdir/writeFile` 直接覆盖官方 demo 的 `pack.yaml/index.yaml/characters/lore/checks/README.md`。
 2. **displayName 无逗号时进度残留在名字里**：`PROGRESS_IN_NAME`（scaffold.ts:29）没有 `/g` 标志且 `[0-9.]` 只吃一个字符。用户原句「丁松言不过序列8消化0.7」实跑结果 = `"丁松言不过消化0.7"`（只删掉第一处「序列8」）。测试 interview.test.ts:57 的用例带逗号（`丁松言，不过…`），所以没暴露。后果：角色卡名带「消化0.7」，scaffold 生成的 `characters/hero.md` 正文命中 `PROGRESS_IN_CARD`（pack.ts:100/142-150），第一轮 `pack_validate` 就报 warning，persona 要求 warning 也要改 → 白跑一轮。
 3. **pack_open_play 不传 packId 交接错包**：从零写包流程 `bootSession` 不创建 runtime（index.ts:133-138 直接 inject 返回）；`pack_open_play()` 缺省走 `loadRuntime`（index.ts:324），而 `loadRuntime` 会静默加载 `defaultPack=lotm-tingen`（index.ts:45-57）→ 交接卡指向廷根 demo 而不是刚 scaffold 的包。工具描述「defaults to the loaded pack」（index.ts:319）与从零写包流程的事实不符。
-4. **「不能热切 preset」代码零强制**：`session/event` 收到 `agent-preset/selected` 只调 `maybeBoot`，runtimes 已存在就跳过（index.ts:397-405），没有任何拒绝/提示逻辑；唯一的工具面遮挡 play-mask（play-mask.ts:8）在仓库自带的 play preset 里被明确禁止挂载（README.md:57、presets/airp-play/agent.cordis.yml:18-21 注释「tools.restrict 在挂载时全局工具表还是空的，New Session 会失败」）。即用户真在 GUI 切到 airp-play：切换成功、author 工具照样可见、作者 runtime 残留，「必须新开会话」只是 handoff 文案。
+4. **「不能热切 preset」代码零强制**：`session/event` 收到 `agent-preset/selected` 只调 `maybeBoot`，runtimes 已存在就跳过（index.ts:397-405），没有任何拒绝/提示逻辑；唯一的工具面遮挡 play-mask（play-mask.ts:8）在仓库自带的 play preset 里被明确禁止挂载（README.md、presets/airp-play.patch.yml 注释「tools.restrict 在挂载时全局工具表还是空的，New Session 会失败」）。即用户真在 GUI 切到 airp-play：切换成功、author 工具照样可见、作者 runtime 残留，「必须新开会话」只是 handoff 文案。
 5. **「先扫一遍」只靠文案挡**：author preset 挂着 `tool-fs` / `tool-fs-search`（agent.cordis.yml:21-25），index.ts 没有任何 author 会话的 fs 拦截。坚持要求的用户（或分心的 agent）能真读到 workspace 小说。若这是硬约束需要在 host 层 restrict；若按「用户给路径就用路径」的设计意图，则是服从性风险而非代码洞——二选一，现状两头不靠。
 6. **destDir 尾缀变体写进仓库根**：`…/packs/jzdh-dingjiang/..` 经 `resolve` 变成 `…/packs`，endsWith 不命中（实证 blocked:false），pack 骨架直接写进仓库 `packs/` 根目录。不覆盖 demo，但污染仓库，且 `loadCatalog` 会把这个目录当 bundledDir 去扫子目录，制造噪音。
 
