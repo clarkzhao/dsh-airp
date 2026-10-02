@@ -18,7 +18,8 @@
     "README.md",
     "LICENSE",
     "packs",
-    "presets"
+    "presets",
+    "skills"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
@@ -35,7 +36,11 @@
   "license": "MIT",
   "dsh": {
     "bundle": {
-      "patch": "./cordis.patch.yml"
+      "patch": [
+        "./cordis.patch.yml",
+        "./presets/airp-play.patch.yml",
+        "./presets/airp-author.patch.yml"
+      ]
     }
   },
   "peerDependencies": {

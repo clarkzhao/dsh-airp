@@ -55,12 +55,25 @@ dsh plugin --profile web add /path/to/dsh-airp
 npx @deepseek-ai/dsh plugin --profile web add /path/to/dsh-airp
 ```
 
-预设（从本仓复制，不要带 `tool-cordis`，也不要在 play preset 里挂 `play-mask`：`tools.restrict` 在挂载时全局工具表还是空的，New Session 会失败）：
+预设随 bundle 一起装，**不需要再手动复制**。`presets/airp-play.patch.yml` 与
+`presets/airp-author.patch.yml` 是 bundle patch 里的 `@deepseek-ai/dsh-agent-preset`
+声明行，`dsh plugin add` 之后两个 preset 直接出现在预设列表里。
+
+> DSH 0.2.0 起 `~/.dsh/.agent-presets/<id>/` 这个旧目录**已经没有任何东西在读**
+> （见 `@deepseek-ai/dsh-agent-preset` skill `editing-cordis-compositions` 的
+> "Migrate a legacy preset"）。旧的双目录安装法在 0.2.0 上表现为「preset 列表里
+> 什么都没有」。升级后可以把旧目录删掉。
+
+创造者 preset 的 `worldbook-authoring` skill 走的是 DSH 的用户 skill root
+（`dsh-skill-filesystem` 默认扫描 `~/.dsh/skills`），需要装一次：
 
 ```bash
-cp -R presets/airp-play ~/.dsh/.agent-presets/airp-play
-cp -R presets/airp-author ~/.dsh/.agent-presets/airp-author
+mkdir -p ~/.dsh/skills
+cp -R skills/worldbook-authoring ~/.dsh/skills/worldbook-authoring
 ```
+
+不要带 `tool-cordis`，也不要在 play preset 里挂 `play-mask`：
+`tools.restrict` 在挂载时全局工具表还是空的，New Session 会失败。
 
 - **AIRP 消费者**（`airp-play`）会弹「加载世界」卡：新建或空白会话切到该 preset 都会问一次。
 - **AIRP 创造者**（`airp-author`）会弹「编辑世界」卡，并可「从零写一个新世界包」。

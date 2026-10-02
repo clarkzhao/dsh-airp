@@ -1,6 +1,6 @@
 # 消费者对抗测试（轻松丁松言 / 自拟穿越者）
 
-依据：persona（`presets/airp-play/agent.cordis.yml`）+ Host 开局（`src/index.ts` `bootSession` / `askSeating`）+ 探针实跑 `HostRuntime`。只验收 play 工具面，不改官方 demo 剧情。
+依据：persona（`presets/airp-play.patch.yml`）+ Host 开局（`src/index.ts` `bootSession` / `askSeating`）+ 探针实跑 `HostRuntime`。只验收 play 工具面，不改官方 demo 剧情。
 
 ## 1. 逐步：用户句 → 消费者最可能动作 → 对照代码会不会翻车
 

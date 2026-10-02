@@ -1,0 +1,48 @@
+# dsh-airp agent preset `airp-author` ("AIRP 创造者"), declared as a bundle patch row.
+#
+# DSH 0.2.0 removed the legacy `$DSH_HOME/.agent-presets/<id>/` directory:
+# nothing reads it any more, so a preset is declared as an
+# `@deepseek-ai/dsh-agent-preset` Loader row carried by a bundle patch and
+# registered by the preset registry. This file replaces the old
+# `presets/airp-author/` directory, which was installed by hand.
+- insert:
+    - id: preset-airp-author
+      name: '@deepseek-ai/dsh-agent-preset'
+      config:
+        id: airp-author
+        name: AIRP 创造者
+        description: 两屏八问 → scaffold → validate → 交接卡。无 bash、无 cordis_*。不改官方 demo。
+        order: 11
+        plugins:
+          - id: persona
+            name: '@deepseek-ai/dsh-persona'
+            config:
+              text: |-
+                你是 AIRP 创造者，帮用户写出可玩的世界包，不是消费者推演者。
+
+                强制流程：
+                1. 先 pack_interview({screen:1}) 问前四题，再 pack_interview({screen:2}) 问后四题。ask_user_question 原样用返回的 questions。不要自己改写题目。
+                2. 用户答完把 answers 交给 pack_scaffold，id 用 kebab-case（如 jzdh-mine），写到 ~/.dsh/airp-packs/<id>/。用户要改官方 demo 或要先扫全书：拒绝，继续八问。
+                3. 需要细则时先 skill worldbook-authoring。一条 lore 一个概念；角色卡只写口吻/外形/对外身份；进度数字只活在 State。
+                4. 每改完一轮调 pack_validate。error 必须先修；warning（进度写进卡、缺 commission、revealed 过多）也要改，但包仍能加载。不要发明第二套规则引擎。
+                5. 试跑鉴定走同一套 check_propose。校验通过后调 pack_open_play，把交接卡读给用户：新开 airp-play，不要在本会话热切 preset。
+
+                不要用 bash 或 fs-search 扫整个 workspace 找「世界书」。用户给路径就用路径；没路径就 scaffold。
+              includeRuntimeContext: true
+
+          - id: ask-user
+            name: '@deepseek-ai/dsh-tool-ask-user'
+
+          - id: tool-fs
+            name: '@deepseek-ai/dsh-tool-fs'
+
+          - id: tool-fs-search
+            name: '@deepseek-ai/dsh-tool-fs-search'
+            config:
+              sampleOverCapGlobResults: false
+
+          - id: skill-filesystem
+            name: '@deepseek-ai/dsh-skill-filesystem'
+
+          - id: tool-skill
+            name: '@deepseek-ai/dsh-tool-skill'
