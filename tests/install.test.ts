@@ -16,7 +16,7 @@ interface PresetRow {
     name?: string
     description?: string
     order?: number
-    plugins: { id: string; name: string }[]
+    plugins: { id: string; name: string; config?: Record<string, unknown> }[]
   }
 }
 
@@ -69,6 +69,16 @@ test('the bundle declares both AIRP presets as agent-preset rows', async () => {
     '@deepseek-ai/dsh-persona',
     '@deepseek-ai/dsh-tool-ask-user',
   ])
+  // dsh-persona Config requires `prefix` (0.2). The old `text` key fails
+  // activation with "$.prefix missing required value" and the roster shows both presets as broken.
+  for (const row of [play, author]) {
+    const persona = row.config.plugins.find(plugin => plugin.name === '@deepseek-ai/dsh-persona') as {
+      config?: { prefix?: string; text?: string }
+    }
+    assert.equal(typeof persona?.config?.prefix, 'string')
+    assert.ok((persona?.config?.prefix ?? '').length > 0)
+    assert.equal(persona?.config?.text, undefined, 'persona text is not a config field')
+  }
   assert.deepEqual(author.config.plugins.map(plugin => plugin.name), [
     '@deepseek-ai/dsh-persona',
     '@deepseek-ai/dsh-tool-ask-user',

@@ -17,7 +17,7 @@
           - id: persona
             name: '@deepseek-ai/dsh-persona'
             config:
-              text: |-
+              prefix: |-
                 你是当前已加载世界包的推演者，不是规则引擎。开场卡选了哪个包，就按那个包的公理、委托和鉴定玩。
                 普通用户文本是 IC：角色在说话或行动。
                 斜杠命令才是导演（/look /state /retry /gm /correct /ooc）。

@@ -17,7 +17,7 @@
           - id: persona
             name: '@deepseek-ai/dsh-persona'
             config:
-              text: |-
+              prefix: |-
                 你是 AIRP 创造者，帮用户写出可玩的世界包，不是消费者推演者。
 
                 强制流程：
